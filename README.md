@@ -365,29 +365,31 @@ If an update fails:
 
 ## KubeSolo Configuration
 
-### Filesystem Layout
+### Filesystem Security and Overlay Mounts
 
-KubeSolo needs writable overlay directories. The IOT2050 uses a read-only root with writable overlays:
+The IOT2050 uses a read-only root filesystem with writable overlay directories for data persistence. For security hardening, overlay mount options are configured in the build (see [Configuration Overrides](#configuration-overrides)):
 
-```
-┌─────────────────────────────────────────┐
-│ Read-Only Root (/)                      │
-│ - /usr/bin/kubesolo ← Binary lives here │ ✅ Executable
-│ - /bin, /lib, /etc (base)               │
-├─────────────────────────────────────────┤
-│ Writable Overlay Directories            │
-│ - /var ← KubeSolo data storage          │ ✅ Writable
-│ - /etc ← Configuration files            │ ✅ Writable
-│ - /tmp ← Temporary files                │ ✅ Writable
-│ - /home ← User data                     │ ✅ Writable
-└─────────────────────────────────────────┘
+```yaml
+INITRAMFS_OVERLAY_MOUNT_OPTION = "defaults,nodev,nosuid"
 ```
 
-**KubeSolo directories**:
-- `/var/lib/kubesolo` - Cluster data, certificates, configs
-- `/var/log` - Log files
-- `/etc/kubesolo` - Configuration files
-- `/tmp` - Temporary files
+**What this does**:
+- `defaults` - Standard mount options (rw, suid, dev, exec, auto, nouser, async)
+- `nodev` - **Prevents device files from being interpreted** - blocks potential privilege escalation via special device files
+- `nosuid` - **Ignores setuid/setgid bits** - prevents privilege escalation via setuid binaries on writable partitions
+
+**Why this matters for KubeSolo**:
+- KubeSolo writes to `/var/lib/kubesolo` and `/var/log`
+- These directories are on writable overlay partitions by a mounted /var partition, the same one being used by both OS partitions.
+- Without `nodev` and `nosuid`, an attacker could place malicious device files or setuid binaries in these writable locations
+- This hardening prevents such attacks while allowing normal KubeSolo operations
+
+**KubeSolo directory structure**:
+- `/usr/bin/kubesolo` - Binary on read-only root (executable, protected)
+- `/var/lib/kubesolo` - Cluster data, certificates, configs (writable, hardened)
+- `/var/log` - Log files (writable, hardened)
+
+⚠️ **Note**: These security restrictions do not affect normal container operations but significantly reduce the attack surface.
 
 ### Systemd Service
 
