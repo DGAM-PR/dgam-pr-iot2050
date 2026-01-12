@@ -4,7 +4,7 @@ header:
 repos:
   meta-iot2050:
     url: https://github.com/siemens/meta-iot2050.git
-    refspec: main
+    refspec: master
     layers:
       meta:
       meta-sm:
