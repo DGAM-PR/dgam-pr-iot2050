@@ -166,7 +166,7 @@ This project uses **ISAR** (Integration System for Automated Root filesystem gen
 
 ```bash
 # Build the IOT2050 image with custom layer
-./kas-container --isar build kas/dgam-pr.yml
+./kas-container --isar build ./kas/dgam-pr.yml
 ```
 
 ⚠️ The `--isar` flag is **required** because the IOT2050 platform uses ISAR rather than standard Yocto/OpenEmbedded.
@@ -175,13 +175,13 @@ This project uses **ISAR** (Integration System for Automated Root filesystem gen
 
 ```bash
 # Clean build artifacts (keep downloads)
-./kas-container --isar clean kas/dgam-pr.yml
+./kas-container --isar clean ./kas/dgam-pr.yml
 
 # Complete clean including downloads  
-./kas-container --isar cleanall kas/dgam-pr.yml
+./kas-container --isar cleanall ./kas/dgam-pr.yml
 
 # Open shell in build environment
-./kas-container --isar shell kas/dgam-pr.yml
+./kas-container --isar shell ./kas/dgam-pr.yml
 ```
 
 ### Build Output
