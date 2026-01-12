@@ -73,7 +73,7 @@ And removes to optimize for Kubernetes:
 ```mermaid
 flowchart TD
   %% --- Workflow 1: Initial IOT Device Install ---
-  subgraph V1["Initial IOT Device Install"]f
+  subgraph V1["Initial IOT Device Install"]
     direction TB
     A[Build .wic + .swu files]:::build --> B[Initial setup]:::normal
     B --> C[Flash .wic to SD card]:::flash
