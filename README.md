@@ -66,6 +66,30 @@ And removes to optimize for Kubernetes:
 - ❌ **Docker** (disabled, using KubeSolo instead)
 - ❌ **Mosquitto** MQTT broker (removed)
 
+### Security Hardening
+
+Both PLC-facing and VPN-facing configurations include security hardening measures:
+
+#### TCF Agent Removal
+
+**What is TCF Agent?**
+- Target Communication Framework (TCF) Agent is a debugging and development tool
+- Provides remote access to device internals for development/debugging
+- Opens network ports for remote connections
+
+**Why we remove it:**
+- ✅ **Reduces attack surface** - Eliminates unnecessary network services on production devices
+- ✅ **Closes debugging ports** - Prevents unauthorized remote access via TCF protocol
+- ✅ **Production hardening** - Development tools should not run on deployed systems
+- ✅ **Compliance** - Aligns with security best practices for industrial IoT deployments
+
+**Implementation:**
+```yaml
+IMAGE_INSTALL:remove = "tcf-agent"
+```
+
+This removal is configured in both [`kas/plc-facing-dgam-pr.yml`](kas/plc-facing-dgam-pr.yml) and [`kas/vpn-facing-dgam-pr.yml`](kas/vpn-facing-dgam-pr.yml).
+
 ### Prerequisites
 
 - Docker or Podman

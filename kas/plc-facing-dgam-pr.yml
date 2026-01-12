@@ -14,3 +14,7 @@ repos:
     path: meta-dgam-pr
     layers:
       .:
+
+local_conf_header:
+  security: |
+    IMAGE_INSTALL:remove = "tcf-agent"
