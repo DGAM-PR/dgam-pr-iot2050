@@ -1,30 +1,19 @@
 header:
   version: 14
+  includes:
+    - meta-iot2050/kas-iot2050-swupdate.yml
 
 repos:
-  meta-iot2050:
-    url: https://github.com/siemens/meta-iot2050.git
-    refspec: master
+  meta-dgam-pr:
+    path: meta-dgam-pr
     layers:
-      meta:
-      meta-sm:
-
-  meta-custom:
-    path: ../meta-dgam-pr
-
-bblayers_conf_header:
-  standard: |
-    POKY_BBLAYERS_CONF_VERSION = "2"
-    BBPATH = "${TOPDIR}"
-    BBFILES ?= ""
+      .:
 
 local_conf_header:
-  standard: |
-    CONF_VERSION = "2"
-    PACKAGE_CLASSES ?= "package_deb"
-    DISTRO_FEATURES:append = " systemd"
-    VIRTUAL-RUNTIME_init_manager = "systemd"
-
-machine: iot2050-sm
-distro: iot2050-debian
-target: iot2050-image-example
+  dgam_customization: |
+    IOT2050_NODE_RED_SUPPORT = "0"
+    IOT2050_DEBIAN_DEBUG_PACKAGES:remove = "mosquitto mosquitto-clients"
+    IOT2050_DOCKER_SUPPORT = "0"
+    IMAGE_INSTALL:append = " kubesolo"
+    IMAGE_INSTALL:append = " kubectl"
+    INITRAMFS_OVERLAY_MOUNT_OPTION = "defaults,nodev,nosuid"
