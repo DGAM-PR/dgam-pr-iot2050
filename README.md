@@ -177,12 +177,32 @@ This project uses **ISAR** (Integration System for Automated Root filesystem gen
 # Clean build artifacts (keep downloads)
 ./kas-container --isar clean ./kas/dgam-pr.yml
 
-# Complete clean including downloads  
+# Complete clean including downloads
 ./kas-container --isar cleanall ./kas/dgam-pr.yml
 
 # Open shell in build environment
 ./kas-container --isar shell ./kas/dgam-pr.yml
 ```
+
+### Complete Cleanup Script
+
+For a complete cleanup including fetched repositories (isar, meta-iot2050, cip-core), use the provided cleanup script:
+
+```bash
+# Interactive cleanup (asks for confirmation)
+./clean-build-deps.sh
+
+# Force cleanup (no confirmation)
+./clean-build-deps.sh --force
+```
+
+This script removes:
+- `build/` - All build artifacts and output images
+- `isar/` - ISAR build system repository
+- `meta-iot2050/` - IOT2050 layer repository
+- `cip-core/` - CIP core layer repository
+
+These will be automatically re-downloaded on the next build. Useful for starting completely fresh or resolving repository conflicts.
 
 ### Build Output
 
