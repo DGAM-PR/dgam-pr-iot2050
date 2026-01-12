@@ -1,15 +1,551 @@
-# My Custom IOT2050 Project
+# DGAM PR IOT2050 Custom Image
 
-This project extends the Siemens IOT2050 Yocto layers with custom functionality.
+This project extends the Siemens IOT2050 platform with custom functionality for Kubernetes deployment. It builds upon the [meta-iot2050](https://github.com/siemens/meta-iot2050) layer using the ISAR build system (Debian-based embedded Linux).
 
-## Dependencies
-- KAS build tool
-- Docker (recommended) or native Yocto dependencies
-- meta-iot2050 (automatically fetched by KAS)
+## Table of Contents
 
-## Building with KAS
+- [Project Overview](#project-overview)
+- [Architecture](#architecture)
+- [Building](#building)
+- [Deployment](#deployment)
+- [SWUpdate Usage](#swupdate-usage)
+- [KubeSolo Configuration](#kubesolo-configuration)
+- [Advanced Topics](#advanced-topics)
+- [Troubleshooting](#troubleshooting)
 
-### Using KAS in Docker (Recommended):
-```bash
-kas-container build kas/my-custom-build.yml
+---
+
+## Project Overview
+
+### Project Structure
+
 ```
+.
+├── kas/
+│   └── dgam-pr.yml              # Main KAS configuration
+├── meta-dgam-pr/                # Custom Yocto/ISAR layer
+│   ├── conf/
+│   │   └── layer.conf          # Layer configuration
+│   └── recipes-app/
+│       ├── kubectl/            # Kubernetes CLI tool
+│       └── kubesolo/           # Single-node Kubernetes setup
+└── meta-iot2050/               # Siemens IOT2050 base layer (submodule/checkout)
+```
+
+### Device Types
+
+This build supports two IOT2050 deployment scenarios:
+
+#### IOT1: PLC Facing Device
+- Standard IOT2050 build without Kubernetes
+- Direct PLC connectivity
+- **Build command**: Use standard meta-iot2050 configurations
+
+#### IOT2: Internet Facing Device  
+- **Custom build with Kubernetes** (this repository)
+- Runs KubeSolo for container management
+- Data collection and edge processing
+- **Build command**: `./kas-container --isar build kas/dgam-pr.yml`
+
+### Custom Features
+
+This build adds:
+- ✅ **kubesolo**: Single-node Kubernetes distribution
+- ✅ **kubectl**: Kubernetes CLI tool (v1.34.0)
+
+And removes to optimize for Kubernetes:
+- ❌ **Node-RED** (disabled)
+- ❌ **Docker** (disabled, using KubeSolo instead)
+- ❌ **Mosquitto** MQTT broker (removed)
+
+### Prerequisites
+
+- Docker or Podman
+- ~50GB free disk space
+- Linux host (Ubuntu/Debian recommended)
+
+---
+
+## Architecture
+
+### Update Workflow
+
+```mermaid
+flowchart TD
+  %% --- Workflow 1: Initial IOT Device Install ---
+  subgraph V1["Initial IOT Device Install"]f
+    direction TB
+    A[Build .wic + .swu files]:::build --> B[Initial setup]:::normal
+    B --> C[Flash .wic to SD card]:::flash
+    C --> D[Boot device]:::normal
+    D --> E[Device running v1.0]:::state
+  end
+
+  %% --- Workflow 2: Update IO Device ---
+  subgraph V2["SWUpdate Process"]
+    direction TB
+    F[Build new version]:::build --> G[Generate new .swu]:::normal
+    G --> H[Transfer .swu to device]:::normal
+    H --> I[Run: swupdate -i new.swu]:::action
+    I --> J[Reboot to updated system]:::normal
+    J --> K[Device running v2.0]:::state2
+  end
+
+  classDef build fill:#dbeafe,stroke:#1d4ed8,stroke-width:1.5px,color:#0b3b8a;
+  classDef normal fill:#f5f7fa,stroke:#4b5563,stroke-width:1.5px,color:#111827;
+  classDef flash fill:#dcfce7,stroke:#047857,stroke-width:1.5px,color:#064e3b;
+  classDef action fill:#fef3c7,stroke:#b45309,stroke-width:1.5px,color:#7c2d12;
+  classDef state fill:#e5e7eb,stroke:#374151,stroke-width:1.5px,color:#111827;
+  classDef state2 fill:#e0f2fe,stroke:#0369a1,stroke-width:1.5px,color:#0c4a6e;
+```
+
+### KAS Configuration Chain
+
+The [`kas/dgam-pr.yml`](kas/dgam-pr.yml) configuration uses a layered include approach:
+
+```
+kas/dgam-pr.yml
+  └─ meta-iot2050/kas-iot2050-swupdate.yml
+      └─ meta-iot2050/kas-iot2050-example.yml
+          ├─ meta-iot2050/kas/iot2050.yml (base ISAR config)
+          ├─ meta-iot2050/kas/opt/example.yml
+          ├─ meta-iot2050/kas/opt/node-red.yml
+          └─ meta-iot2050/kas/opt/sm.yml
+```
+
+### Active Layers
+
+The build includes these Yocto/ISAR layers:
+
+1. **isar/meta** - ISAR core (Debian build system)
+2. **cip-core** - Civil Infrastructure Platform packages
+3. **meta-iot2050/meta** - IOT2050 hardware support
+4. **meta-iot2050/meta-example** - Example applications
+5. **meta-iot2050/meta-node-red** - Node-RED (disabled via config)
+6. **meta-iot2050/meta-sm** - SM variant support
+7. **meta-dgam-pr** - Custom DGAM PR packages
+
+### Configuration Overrides
+
+The [`kas/dgam-pr.yml`](kas/dgam-pr.yml) local_conf_header section overrides defaults:
+
+```yaml
+IOT2050_NODE_RED_SUPPORT = "0"           # Disable Node-RED
+IOT2050_DOCKER_SUPPORT = "0"             # Disable Docker
+IMAGE_INSTALL:append = " kubesolo"       # Add kubesolo package
+IMAGE_INSTALL:append = " kubectl"        # Add kubectl package
+INITRAMFS_OVERLAY_MOUNT_OPTION = "defaults,nodev,nosuid"  # Hardened mounts
+```
+
+### Layer Compatibility
+
+The `meta-dgam-pr` layer declares:
+
+- **Layer dependencies**: `core` (ISAR), `meta` (IOT2050)
+- **Series compatibility**: `next` (ISAR series naming)
+
+⚠️ **Note**: ISAR uses different series names than Yocto (e.g., `next` vs `scarthgap`).
+
+### Build System: ISAR vs Yocto
+
+This project uses **ISAR** (Integration System for Automated Root filesystem generation), not standard Yocto:
+
+| Aspect | ISAR | Yocto/OpenEmbedded |
+|--------|------|-------------------|
+| Base | Debian packages | Custom built packages |
+| Build time | Faster | Slower |
+| Package format | .deb | .rpm, .ipk, .deb |
+| Toolchain | Debian toolchain | Custom cross-compiler |
+| Series naming | `next`, `v0.6` | `scarthgap`, `kirkstone` |
+
+---
+
+## Building
+
+### Quick Start
+
+```bash
+# Build the IOT2050 image with custom layer
+./kas-container --isar build kas/dgam-pr.yml
+```
+
+⚠️ The `--isar` flag is **required** because the IOT2050 platform uses ISAR rather than standard Yocto/OpenEmbedded.
+
+### Build Options
+
+```bash
+# Clean build artifacts (keep downloads)
+./kas-container --isar clean kas/dgam-pr.yml
+
+# Complete clean including downloads  
+./kas-container --isar cleanall kas/dgam-pr.yml
+
+# Open shell in build environment
+./kas-container --isar shell kas/dgam-pr.yml
+```
+
+### Build Output
+
+Location of build results:
+
+```
+build/
+├── tmp/
+│   ├── deploy/
+│   │   └── images/
+│   │       └── iot2050/
+│   │           ├── iot2050-image-swu-example-iot2050-debian-iot2050.wic     ← Initial installation image
+│   │           ├── iot2050-image-swu-example-iot2050-debian-iot2050.swu     ← Update package
+│   │           ├── iot2050-image-swu-example-iot2050-debian-iot2050.wic.bmap← Block map for bmaptool
+│   │           └── iot2050-image-swu-example-iot2050-debian-iot2050.wic.img ← Symlink to .wic
+│   └── work/     ← Intermediate build files
+└── sources/      ← Downloaded source repositories
+```
+
+### File Types
+
+| Extension | Purpose | When to Use |
+|-----------|---------|-------------|
+| `.wic` | Bootable disk image | Initial installation |
+| `.swu` | Update package | System updates |
+
+### Copy Files from Build Server
+
+Example using SCP to transfer build artifacts:
+
+```bash
+# Create directory on destination machine
+mkdir ~/images
+
+# Copy both .wic and .swu files from build server
+scp <username>@<buildserver>:repos/dgam-pr-iot2050/build/tmp/deploy/images/iot2050/iot2050-image-swu-example-iot2050-debian-iot2050.{wic,swu} ~/images/
+```
+
+---
+
+## Deployment
+
+### Initial Installation
+
+#### Method 1: Flash eMMC from Service Stick (Recommended)
+
+1. **Prepare USB stick** with .wic file
+2. **Boot IOT2050** from Siemens service stick (Industrial OS)
+   - Default credentials: `root/root`
+3. **Mount USB stick**:
+   ```bash
+   sudo mkdir -p /tmp/usb
+   sudo mount -t ext4 /dev/sda1 /tmp/usb
+   cd /tmp/usb
+   ```
+4. **Flash to eMMC** (this takes several minutes):
+   ```bash
+   sudo dd if=./iot2050-image-swu-example-iot2050-debian-iot2050.wic \
+           of=/dev/mmcblk1 \
+           bs=4M \
+           status=progress \
+           conv=fsync
+   ```
+5. **Reboot**: `sudo reboot`
+
+#### Method 2: Direct SD Card Flash
+
+```bash
+# Flash .wic to SD card on your PC
+sudo dd if=build/tmp/deploy/images/iot2050/iot2050-image-swu-example-iot2050-debian-iot2050.wic \
+        of=/dev/mmcblk0 \
+        bs=4M \
+        oflag=sync \
+        status=progress
+
+# Or use Balena Etcher (GUI tool)
+```
+
+---
+
+## SWUpdate Usage
+
+### How SWUpdate Works
+
+The system uses a dual-partition layout:
+
+```
+┌─────────────────────────────────────┐
+│ Boot Partition                      │
+├─────────────────────────────────────┤
+│ Root Filesystem A (Active)          │ ← Currently running
+├─────────────────────────────────────┤
+│ Root Filesystem B (Inactive)        │ ← Update target
+└─────────────────────────────────────┘
+```
+
+**Update process**:
+1. `swupdate` writes to the inactive partition
+2. Bootloader switches to updated partition on reboot
+3. Previous partition becomes backup for rollback
+
+### Applying Updates
+
+#### Method 1: Network Transfer (Recommended)
+
+```bash
+# Transfer update file to device
+scp build/tmp/deploy/images/iot2050/iot2050-image-swu-example-iot2050-debian-iot2050.swu \
+    root@192.168.200.1:/tmp/
+
+# SSH into device
+ssh root@192.168.200.1
+
+# Apply update
+swupdate -i /tmp/iot2050-image-swu-example-iot2050-debian-iot2050.swu
+
+# Reboot to activate new system
+reboot
+```
+
+#### Method 2: USB Stick
+
+```bash
+# Copy .swu file to USB stick
+# Insert USB into IOT2050
+
+mount /dev/sda1 /mnt
+swupdate -i /mnt/iot2050-image-swu-example-iot2050-debian-iot2050.swu
+reboot
+```
+
+#### Method 3: Direct Download
+
+```bash
+# On the IOT2050 device
+wget https://your-update-server.com/updates/latest.swu -O /tmp/update.swu
+swupdate -i /tmp/update.swu
+reboot
+```
+
+### Confirming Updates
+
+⚠️ **Important**: After rebooting into the updated system, you must confirm the update:
+
+```bash
+# Test that the system works correctly
+# Then confirm the update to make it permanent
+complete_update.sh
+```
+
+**Warning**: If you don't run `complete_update.sh`, the next reboot will roll back to the previous version!
+
+### Rollback Protection
+
+If an update fails:
+- **Automatic**: Device boots back to previous working version
+- **Manual**: Reboot without running `complete_update.sh`
+
+---
+
+## KubeSolo Configuration
+
+### Filesystem Layout
+
+KubeSolo needs writable overlay directories. The IOT2050 uses a read-only root with writable overlays:
+
+```
+┌─────────────────────────────────────────┐
+│ Read-Only Root (/)                      │
+│ - /usr/bin/kubesolo ← Binary lives here │ ✅ Executable
+│ - /bin, /lib, /etc (base)               │
+├─────────────────────────────────────────┤
+│ Writable Overlay Directories            │
+│ - /var ← KubeSolo data storage          │ ✅ Writable
+│ - /etc ← Configuration files            │ ✅ Writable
+│ - /tmp ← Temporary files                │ ✅ Writable
+│ - /home ← User data                     │ ✅ Writable
+└─────────────────────────────────────────┘
+```
+
+**KubeSolo directories**:
+- `/var/lib/kubesolo` - Cluster data, certificates, configs
+- `/var/log` - Log files
+- `/etc/kubesolo` - Configuration files
+- `/tmp` - Temporary files
+
+### Systemd Service
+
+The kubesolo service is automatically installed but requires per-device configuration.
+
+#### Service Configuration
+
+- **Configuration file**: `/var/lib/kubesolo/config`
+- **Service file**: `/usr/lib/systemd/system/kubesolo.service`
+- **Validation script**: `/usr/bin/kubesolo-prestart.sh`
+- **KUBECONFIG**: Set to `/var/lib/kubesolo/pki/admin/admin.kubeconfig`
+
+#### Automatic Retry Behavior
+
+If configuration is missing or invalid:
+1. ✅ Service retries every **60 seconds**
+2. ⚠️ After **5 failed attempts** in a **10-minute window**, systemd stops retrying
+3. 🛑 Service remains in failed state until configuration is provided or device reboots
+
+#### Per-Device Setup
+
+After deploying the OS image to each IOT2050 device:
+
+```bash
+# Edit the configuration file
+vi /var/lib/kubesolo/config
+
+# Uncomment and set your device-specific values:
+KUBESOLO_PORTAINER_EDGE_ID=device-001
+KUBESOLO_PORTAINER_EDGE_KEY=YmFzZTY0ZW5jb2RlZGtleQ==
+
+# Start the service
+systemctl start kubesolo
+
+# Check status
+systemctl status kubesolo
+```
+
+#### Troubleshooting KubeSolo
+
+```bash
+# View service logs
+journalctl -u kubesolo -f
+
+# Check service status
+systemctl status kubesolo
+
+# Manually restart after configuration
+systemctl restart kubesolo
+
+# Reset failure counter (if service hit restart limit)
+systemctl reset-failed kubesolo
+```
+
+---
+
+## Advanced Topics
+
+### Inspecting Images Locally
+
+Mount your image locally to inspect contents:
+
+```bash
+# 1. Mount the image
+sudo losetup -fP iot2050-image-swu-example-iot2050-debian-iot2050.wic
+
+# 2. Check what loop device was added (probably loop0)
+lsblk
+
+# 3. Create mount directory
+mkdir -p /mnt/yourimage
+
+# 4. Mount the partition (p2 is usually the root filesystem)
+sudo mount /dev/loop0p2 /mnt/yourimage
+
+# 5. Your image is now mounted at /mnt/yourimage
+cd /mnt/yourimage
+
+# 6. Cleanup when done
+sudo umount /dev/loop0p2
+sudo losetup -d /dev/loop0
+```
+
+### U-Boot Information
+
+U-Boot is the bootloader used by IOT2050 for hardware initialization and OS loading.
+
+**Resources**:
+- [IOT2050 U-Boot Documentation](https://docs.u-boot.org/en/latest/board/siemens/iot2050.html)
+- [U-Boot General Documentation](https://docs.u-boot.org/en/latest/)
+- Local: [`meta-iot2050/meta/recipes-bsp/u-boot/README.md`](meta-iot2050/meta/recipes-bsp/u-boot/README.md)
+
+**Common U-Boot commands**:
+
+```bash
+# Boot from USB (when in U-Boot prompt)
+setenv devnum 0
+run bootcmd_usb0
+
+# Mount specific partition
+load mmc 0:2 ${kernel_addr_r} linux.efi
+bootefi ${kernel_addr_r} ${fdtcontroladdr}
+```
+
+### Firmware Updates
+
+For detailed firmware update procedures, including U-Boot and bootloader updates, see the official Siemens documentation:
+
+**Downloads**: [IOT2050 Firmware & Tools](https://support.industry.siemens.com/cs/document/109741799/downloads-for-simatic-iot20x0?dti=0&lc=en-WW)
+
+**Quick firmware update procedure**:
+
+1. Boot from service stick
+2. Install OS to eMMC (with development packages)
+3. Configure apt sources
+4. Install firmware update tool: `iot2050-firmware-update_<version>_arm64.deb`
+5. Run: `iot2050-firmware-update IOT2050-FW-Update-PKG-<version>`
+6. Reboot and verify: `fw_printenv fw_version`
+
+⚠️ **Note**: Ensure `/etc/os-release` contains `BUILD_ID` before updating firmware.
+
+---
+
+## Troubleshooting
+
+### Container Version Issues
+
+If you encounter missing tools (`reprepro`, `envsubst`, `quilt`), ensure you're using kas-isar 5.1+:
+
+```bash
+# Check current images
+docker images | grep kas
+
+# Pull latest version
+docker pull ghcr.io/siemens/kas/kas-isar:5.1
+```
+
+### Layer Dependency Errors
+
+Ensure [`meta-dgam-pr/conf/layer.conf`](meta-dgam-pr/conf/layer.conf) uses:
+- `LAYERDEPENDS_meta-dgam-pr = "core meta"` (not `iot2050`)
+- `LAYERSERIES_COMPAT_meta-dgam-pr = "next"` (not Yocto series like `scarthgap`)
+
+### Build Errors
+
+```bash
+# Clean and rebuild
+./kas-container --isar cleanall kas/dgam-pr.yml
+./kas-container --isar build kas/dgam-pr.yml
+
+# Check build logs
+less build/tmp/work/*/temp/log.do_*
+```
+
+### Update Won't Apply
+
+- Verify `.swu` file is not corrupted
+- Check disk space: `df -h`
+- Review swupdate logs: `journalctl -u swupdate`
+- Ensure correct partition layout: `lsblk`
+
+### Device Won't Boot After Update
+
+- Remove power and reinsert - device should boot previous version
+- If still failing, reflash using `.wic` file from USB/SD card
+
+---
+
+## References
+
+- [meta-iot2050 Documentation](https://github.com/siemens/meta-iot2050)
+- [KAS Documentation](https://kas.readthedocs.io/)
+- [ISAR Documentation](https://github.com/ilbers/isar)
+- [IOT2050 Product Page](https://new.siemens.com/global/en/products/automation/pc-based/iot-gateways/simatic-iot2050.html)
+- [IOT2050 Downloads](https://support.industry.siemens.com/cs/document/109741799/)
+
+---
+
+## License
+
+See [LICENCE](LICENCE) file for details.
