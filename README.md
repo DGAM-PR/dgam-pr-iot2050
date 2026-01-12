@@ -22,7 +22,8 @@ This project extends the Siemens IOT2050 platform with custom functionality for 
 ```
 .
 ├── kas/
-│   └── dgam-pr.yml              # Main KAS configuration
+│   ├── plc-facing-dgam-pr.yml   # PLC-facing device configuration
+│   └── vpn-facing-dgam-pr.yml   # VPN-facing device configuration (with Kubernetes)
 ├── meta-dgam-pr/                # Custom Yocto/ISAR layer
 │   ├── conf/
 │   │   └── layer.conf          # Layer configuration
@@ -34,18 +35,25 @@ This project extends the Siemens IOT2050 platform with custom functionality for 
 
 ### Device Types
 
-This build supports two IOT2050 deployment scenarios:
+This repository supports two IOT2050 device configurations based on the [DGAM PR rack architecture](https://github.com/DGAM-PR/architecture/tree/main/rack):
 
-#### IOT1: PLC Facing Device
-- Standard IOT2050 build without Kubernetes
-- Direct PLC connectivity
-- **Build command**: Use standard meta-iot2050 configurations
+#### PLC-Facing Device (IOT1)
+- **Purpose**: Direct PLC connectivity for data acquisition
+- **Configuration**: [`kas/plc-facing-dgam-pr.yml`](kas/plc-facing-dgam-pr.yml)
+- **Features**: Standard IOT2050 SWUpdate image without Kubernetes
+- **Build command**: `./kas-container --isar build kas/plc-facing-dgam-pr.yml`
 
-#### IOT2: Internet Facing Device  
-- **Custom build with Kubernetes** (this repository)
-- Runs KubeSolo for container management
-- Data collection and edge processing
-- **Build command**: `./kas-container --isar build kas/dgam-pr.yml`
+#### VPN-Facing Device (IOT2)
+- **Purpose**: Edge computing node accessible via VPN
+- **Configuration**: [`kas/vpn-facing-dgam-pr.yml`](kas/vpn-facing-dgam-pr.yml)
+- **Features**: Kubernetes-enabled with KubeSolo and kubectl
+- **Build command**: `./kas-container --isar build kas/vpn-facing-dgam-pr.yml`
+
+**Key Differences**:
+- PLC-facing: Minimal configuration, focuses on PLC communication
+- VPN-facing: Includes container orchestration (KubeSolo), remote management capabilities, hardened security settings
+
+For complete rack architecture and device placement, see the [DGAM PR Architecture Repository](https://github.com/DGAM-PR/architecture/tree/main/rack).
 
 ### Custom Features
 
@@ -101,10 +109,10 @@ flowchart TD
 
 ### KAS Configuration Chain
 
-The [`kas/dgam-pr.yml`](kas/dgam-pr.yml) configuration uses a layered include approach:
+Both configurations use a layered include approach:
 
 ```
-kas/dgam-pr.yml
+kas/[plc|vpn]-facing-dgam-pr.yml
   └─ meta-iot2050/kas-iot2050-swupdate.yml
       └─ meta-iot2050/kas-iot2050-example.yml
           ├─ meta-iot2050/kas/iot2050.yml (base ISAR config)
@@ -115,19 +123,19 @@ kas/dgam-pr.yml
 
 ### Active Layers
 
-The build includes these Yocto/ISAR layers:
+Both builds include these Yocto/ISAR layers:
 
 1. **isar/meta** - ISAR core (Debian build system)
 2. **cip-core** - Civil Infrastructure Platform packages
 3. **meta-iot2050/meta** - IOT2050 hardware support
 4. **meta-iot2050/meta-example** - Example applications
-5. **meta-iot2050/meta-node-red** - Node-RED (disabled via config)
+5. **meta-iot2050/meta-node-red** - Node-RED (disabled in VPN-facing config)
 6. **meta-iot2050/meta-sm** - SM variant support
 7. **meta-dgam-pr** - Custom DGAM PR packages
 
 ### Configuration Overrides
 
-The [`kas/dgam-pr.yml`](kas/dgam-pr.yml) local_conf_header section overrides defaults:
+The VPN-facing configuration ([`kas/vpn-facing-dgam-pr.yml`](kas/vpn-facing-dgam-pr.yml)) includes additional customizations:
 
 ```yaml
 IOT2050_NODE_RED_SUPPORT = "0"           # Disable Node-RED
@@ -136,6 +144,8 @@ IMAGE_INSTALL:append = " kubesolo"       # Add kubesolo package
 IMAGE_INSTALL:append = " kubectl"        # Add kubectl package
 INITRAMFS_OVERLAY_MOUNT_OPTION = "defaults,nodev,nosuid"  # Hardened mounts
 ```
+
+The PLC-facing configuration ([`kas/plc-facing-dgam-pr.yml`](kas/plc-facing-dgam-pr.yml)) uses default SWU meta-iot2050 settings without these overrides.
 
 ### Layer Compatibility
 
@@ -164,24 +174,31 @@ This project uses **ISAR** (Integration System for Automated Root filesystem gen
 
 ### Quick Start
 
+Choose the appropriate configuration for your device type:
+
 ```bash
-# Build the IOT2050 image with custom layer
-./kas-container --isar build ./kas/dgam-pr.yml
+# Build PLC-facing device (standard IOT2050)
+./kas-container --isar build kas/plc-facing-dgam-pr.yml
+
+# Build VPN-facing device (with Kubernetes)
+./kas-container --isar build kas/vpn-facing-dgam-pr.yml
 ```
 
 ⚠️ The `--isar` flag is **required** because the IOT2050 platform uses ISAR rather than standard Yocto/OpenEmbedded.
 
 ### Build Options
 
+Replace `<config-file>` with either `kas/plc-facing-dgam-pr.yml` or `kas/vpn-facing-dgam-pr.yml`:
+
 ```bash
 # Clean build artifacts (keep downloads)
-./kas-container --isar clean ./kas/dgam-pr.yml
+./kas-container --isar clean <config-file>
 
 # Complete clean including downloads
-./kas-container --isar cleanall ./kas/dgam-pr.yml
+./kas-container --isar cleanall <config-file>
 
 # Open shell in build environment
-./kas-container --isar shell ./kas/dgam-pr.yml
+./kas-container --isar shell <config-file>
 ```
 
 ### Complete Cleanup Script

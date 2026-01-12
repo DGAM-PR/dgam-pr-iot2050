@@ -1,0 +1,16 @@
+header:
+  version: 14
+  includes:
+    - repo: meta-iot2050
+      file: kas-iot2050-swupdate.yml
+
+repos:
+  meta-iot2050:
+    url: https://github.com/siemens/meta-iot2050
+    path: meta-iot2050
+    branch: master
+
+  meta-dgam-pr:
+    path: meta-dgam-pr
+    layers:
+      .:
