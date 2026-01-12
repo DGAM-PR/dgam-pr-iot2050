@@ -4,6 +4,9 @@ header:
     - meta-iot2050/kas-iot2050-swupdate.yml
 
 repos:
+  meta-iot2050:
+    path: meta-iot2050
+
   meta-dgam-pr:
     path: meta-dgam-pr
     layers:
