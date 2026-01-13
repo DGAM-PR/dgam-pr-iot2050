@@ -2,13 +2,21 @@ header:
   version: 14
   includes:
     - repo: meta-iot2050
-      file: kas-iot2050-swupdate.yml
+      file: kas/iot2050.yml
+
+build_system: isar
+target: iot2050-image-swu-example
 
 repos:
   meta-iot2050:
     url: https://github.com/siemens/meta-iot2050
     path: meta-iot2050
     branch: master
+    layers:
+      meta:
+      meta-example: # REQUIRED for iot2050-image-swu-example
+      meta-node-red: # REQUIRED for PLC facing IOT2050 Device
+      # meta-sm: NOT REQUIRED as only RS232 on X30 port (ASCII Communication) is needed
 
   meta-dgam-pr:
     path: meta-dgam-pr
@@ -18,3 +26,4 @@ repos:
 local_conf_header:
   security: |
     IMAGE_INSTALL:remove = "tcf-agent"
+    IOT2050_DOCKER_SUPPORT = "0"
