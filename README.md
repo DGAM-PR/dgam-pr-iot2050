@@ -602,6 +602,10 @@ U-Boot is the bootloader used by IOT2050 for hardware initialization and OS load
 setenv devnum 0
 run bootcmd_usb0
 
+#Boot from SD Card for Troubleshooting
+set mmc dev 0
+boot
+
 # Mount specific partition
 load mmc 0:2 ${kernel_addr_r} linux.efi
 bootefi ${kernel_addr_r} ${fdtcontroladdr}
