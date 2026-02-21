@@ -541,16 +541,143 @@ For detailed firmware update procedures, including U-Boot and bootloader updates
 
 **Downloads**: [IOT2050 Firmware & Tools](https://support.industry.siemens.com/cs/document/109741799/downloads-for-simatic-iot20x0?dti=0&lc=en-WW)
 
-**Quick firmware update procedure**:
+## IOT2050 Firmware Update – Short Procedure
 
-1. Boot from service stick
-2. Install OS to eMMC (with development packages)
-3. Configure apt sources
-4. Install firmware update tool: `iot2050-firmware-update_<version>_arm64.deb`
-5. Run: `iot2050-firmware-update IOT2050-FW-Update-PKG-<version>`
-6. Reboot and verify: `fw_printenv fw_version`
+Everything to download can be found here:
+https://support.industry.siemens.com/cs/document/109741799/downloads-for-simatic-iot20x0?dti=0&lc=en-WW
 
-⚠️ **Note**: Ensure `/etc/os-release` contains `BUILD_ID` before updating firmware.
+#### Prerequisites
+
+- Service stick / example image for IOT2050
+- Firmware update files from Siemens or from KAS build/tmp/deploy/iot2050/ directory:
+  - `iot2050-firmware-update_<version>_arm64.deb`
+  - `IOT2050-FW-Update-PKG-V01.xx.xx-<hash>.tar.xz`
+- Network access to a Debian mirror (for `apt`)
+
+---
+
+### 1. Prepare Files on the IOT2050
+
+On your PC, download the firmware update tool and package from Siemens, then copy them to a USB Stick:
+
+- A USB Stick only containing these files, not the same stick as the USB Stick you use to install service-stick siemens Industrial OS to eMMC.
+- Make sure to copy both the .deb and the .tar.xz from either your siemens download or your KAS build/tmp/deploy/iot2050/ directory (this one is preferred as it fits the image you will eventually run)
+  - Use the following standard example build to get the latest firmware files: `./kas-container build ./kas-iot2050-example.yml`
+
+---
+
+### 2. Boot Service Stick and Install OS to eMMC
+
+1. Boot the IOT2050 from the **service stick/example image**.
+  0. Insert USB Stick
+  1. Interrupt the boot process to get into u-boot upon starting the device
+  2. following commands
+    1. `setenv devnum 0` <- bootcmd_usb0=devnum=0; run usb_boot
+    2. `run bootcmd_usb0` <- usb_boot=usb start; if usb dev ${devnum}; then devtype=usb; run scan_dev_for_boot_part; fi
+2. Use the menu to **install the OS to eMMC** (Advanced PG2).
+  1. `Important:` Make sure to install an APT Mirror and also select the development packages!!!
+3. Reboot so the device runs from the freshly installed OS on eMMC.
+
+---
+
+### 3. Configure Debian Mirror and Install Dependencies
+
+1. Configure `/etc/apt/sources.list` with a valid Debian mirror (as per Siemens example image/service stick).
+2. Update package lists and install required packages:
+
+```bash
+apt update # Loads all the info (Do NOT apt Upgrade!)
+apt install python3-progress
+```
+
+(Install additional dev / Python packages if required by your environment.)
+
+---
+
+### 4. Ensure `/etc/os-release` Contains Required Keys
+
+Sometimes the BUILD_ID is missing, and the firmware update requires BUILD_ID derrived from /etc/os-release
+
+> Note: The Siemens update script reads `BUILD_ID` (and possibly other keys) from `/etc/os-release`. Missing keys will cause a Python `KeyError`.
+
+0. Inspect `/etc/os-release`:
+
+```bash
+cat /etc/os-release
+```
+
+If that file does not contain BUILD_ID, add it as follows below, else ignore the steps.
+
+1. Check current firmware information (depending on image):
+
+```bash
+fw_printenv fw_version
+# Example output: fw_version=2025.04-V01.05.01-80-gfe007f1
+```
+
+2. Export the trimmed variable
+
+```bash
+CURRENT_VER=$(fw_printenv fw_version | cut -d'-' -f2)
+```
+
+3. Add to /etc/os-release
+
+```bash
+echo "BUILD_ID=$CURRENT_VER" >> /etc/os-release
+```
+
+The file /etc/os-release should now hold the current firmware version in the form of BUILD_ID
+
+---
+
+### 5. Install Firmware Update Tool
+
+```bash
+#Insert USB Stick that has the latest firmware files, mount it and copy it to ~
+mkdir /tmp/usb
+sudo mount /dev/sda1 /tmp/usb #could be sdb1 if you have both usb sticks plugged in
+cp -R /tmp/usb/firmware ./
+cd ~/firmware
+
+# Remove any old version
+dpkg -r iot2050-firmware-update || true
+
+# Install new tool
+dpkg -i firmware-update-package_0.1.arm64.deb # (or similar)
+apt -f install
+```
+- Possible also do `apt install python3-packages`, however it should be installed after `apt -f`
+
+---
+
+### 6. Run Firmware Update
+
+From `~/firmware/`
+
+```bash
+iot2050-firmware-update IOT2050-FW-Update-PKG-<Your Version>.tar.xz
+```
+
+During the process:
+
+1. Confirm the warning that the device may become unbootable (`Y`).
+2. When prompted, choose whether to:
+   - keep the current boot order (`Y`), or
+   - reset to defaults (`n`), according to your setup / Siemens guidance.
+3. Allow the device to reboot when the tool finishes.
+
+---
+
+### 7. Verify Firmware Version
+
+After reboot:
+
+```bash
+fw_printenv fw_version
+```
+
+Confirm that the reported firmware version matches the firmware package you installed.
 
 ---
 
