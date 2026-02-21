@@ -27,3 +27,4 @@ local_conf_header:
   security: |
     IMAGE_INSTALL:remove = "tcf-agent"
     IOT2050_DOCKER_SUPPORT = "0"
+    IMAGE_INSTALL:append = " systemd-networkd"

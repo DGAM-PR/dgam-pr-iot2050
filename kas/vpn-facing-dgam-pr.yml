@@ -30,4 +30,5 @@ local_conf_header:
     IOT2050_DEBIAN_DEBUG_PACKAGES:remove = "mosquitto mosquitto-clients"
     IMAGE_INSTALL:append = " kubesolo"
     IMAGE_INSTALL:append = " kubectl"
+    IMAGE_INSTALL:append = " systemd-networkd"
     INITRAMFS_OVERLAY_MOUNT_OPTION = "defaults,nodev,nosuid"

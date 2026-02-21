@@ -292,7 +292,10 @@ scp <username>@<buildserver>:repos/dgam-pr-iot2050/build/tmp/deploy/images/iot20
 
 1. **Prepare USB stick** with .wic file
 2. **Boot IOT2050** from Siemens service stick (Industrial OS)
-   - Default credentials: `root/root`
+  1. Default credentials: `root/root` (Might have to change Password)
+  2. If it does not boot from the SD Card do the following:
+    1. Set Boot Target`load mmc 0:2 ${kernel_addr_r} linux.efi`
+    2. Boot from set Target`bootefi ${kernel_addr_r}{fdtcontroladdr}` 
 3. **Mount USB stick**:
    ```bash
    sudo mkdir -p /tmp/usb
