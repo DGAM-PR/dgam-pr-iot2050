@@ -10,6 +10,7 @@ This project extends the Siemens IOT2050 platform with custom functionality for 
 - [Deployment](#deployment)
 - [SWUpdate Usage](#swupdate-usage)
 - [KubeSolo Configuration](#kubesolo-configuration)
+- [Network Configuration](#network-configuration)
 - [Advanced Topics](#advanced-topics)
 - [Troubleshooting](#troubleshooting)
 
@@ -60,6 +61,7 @@ For complete rack architecture and device placement, see the [DGAM PR Architectu
 This build adds:
 - ✅ **kubesolo**: Single-node Kubernetes distribution
 - ✅ **kubectl**: Kubernetes CLI tool (v1.34.0)
+- ✅ **systemd-networkd**: Static network configuration for eno2 interface
 
 And removes to optimize for Kubernetes:
 - ❌ **Node-RED** (disabled)
@@ -303,6 +305,7 @@ scp <username>@<buildserver>:repos/dgam-pr-iot2050/build/tmp/deploy/images/iot20
    cd /tmp/usb
    ```
 4. **Flash to eMMC** (this takes several minutes):
+  - Hint: If this is the first time using dd to mmcblk1, wipe it first with `dd if=/dev/zero of=/dev/mmcblk1 bs=4M status=progress`
    ```bash
    sudo dd if=./iot2050-image-swu-example-iot2050-debian-iot2050.wic \
            of=/dev/mmcblk1 \
@@ -487,6 +490,72 @@ systemctl restart kubesolo
 # Reset failure counter (if service hit restart limit)
 systemctl reset-failed kubesolo
 ```
+
+---
+
+## Network Configuration
+
+### Static IP for eno2 Interface
+
+Both device configurations include a static network setup for the `eno2` interface via systemd-networkd.
+
+#### Configuration Details
+
+The network configuration is automatically deployed to `/etc/systemd/network/10-eno2.network`:
+
+```ini
+[Match]
+Name=eno2
+
+[Network]
+DHCP=no
+Address=192.168.1.3/24
+Gateway=192.168.1.1
+DNS=1.1.1.1
+DNS=1.0.0.1
+```
+
+#### Network Settings
+
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| Interface | `eno2` | Second Ethernet interface |
+| IP Address | `192.168.1.3/24` | Static IP with /24 subnet |
+| Gateway | `192.168.1.1` | Default gateway |
+| DNS | `1.1.1.1`, `1.0.0.1` | Cloudflare DNS servers |
+| DHCP | Disabled | Static configuration only |
+
+#### Implementation
+
+The network configuration is provided by the [`systemd-networkd`](meta-dgam-pr/recipes-core/systemd-networkd/systemd-networkd_%.bbappend) recipe:
+
+- **Recipe**: [`meta-dgam-pr/recipes-core/systemd-networkd/systemd-networkd_%.bbappend`](meta-dgam-pr/recipes-core/systemd-networkd/systemd-networkd_%.bbappend)
+- **Config file**: [`meta-dgam-pr/recipes-core/systemd-networkd/files/10-eno2.network`](meta-dgam-pr/recipes-core/systemd-networkd/files/10-eno2.network)
+- **Installed to**: `/etc/systemd/network/10-eno2.network`
+
+#### Verifying Network Configuration
+
+After deployment, verify the network setup:
+
+```bash
+# Check network interface status
+ip addr show eno2
+
+# Verify systemd-networkd configuration
+networkctl status eno2
+
+# Test connectivity
+ping -c 4 192.168.1.1
+```
+
+#### Customizing Network Settings
+
+To modify the network configuration for your deployment:
+
+1. Edit [`meta-dgam-pr/recipes-core/systemd-networkd/files/10-eno2.network`](meta-dgam-pr/recipes-core/systemd-networkd/files/10-eno2.network)
+2. Update IP address, gateway, or DNS as needed
+3. Rebuild the image using kas
+4. Deploy the updated `.swu` file
 
 ---
 
