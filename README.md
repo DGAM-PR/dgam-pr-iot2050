@@ -41,7 +41,7 @@ This repository supports two IOT2050 device configurations based on the [DGAM PR
 #### PLC-Facing Device (IOT1)
 - **Purpose**: Direct PLC connectivity for data acquisition
 - **Configuration**: [`kas/plc-facing-dgam-pr.yml`](kas/plc-facing-dgam-pr.yml)
-- **Features**: Standard IOT2050 SWUpdate image without Kubernetes
+- **Features**: Node-RED enabled, optimized for industrial protocols
 - **Build command**: `./kas-container --isar build kas/plc-facing-dgam-pr.yml`
 
 #### VPN-Facing Device (IOT2)
@@ -50,53 +50,68 @@ This repository supports two IOT2050 device configurations based on the [DGAM PR
 - **Features**: Kubernetes-enabled with KubeSolo and kubectl
 - **Build command**: `./kas-container --isar build kas/vpn-facing-dgam-pr.yml`
 
-**Key Differences**:
-- PLC-facing: Minimal configuration, focuses on PLC communication
-- VPN-facing: Includes container orchestration (KubeSolo), remote management capabilities, hardened security settings
+### Configuration Comparison
 
-For complete rack architecture and device placement, see the [DGAM PR Architecture Repository](https://github.com/DGAM-PR/architecture/tree/main/rack).
+Both configurations share the same base layer ([`meta-dgam-pr`](meta-dgam-pr/)) but differ in their build-time settings:
 
-### Custom Features
+| Feature | PLC-Facing | VPN-Facing |
+|---------|------------|------------|
+| **Base Image** | `iot2050-image-swu-example` | `iot2050-image-swu-example` |
+| **Node-RED** | ✅ Enabled (`meta-node-red` layer) | ❌ Disabled |
+| **Docker** | ❌ Disabled (`IOT2050_DOCKER_SUPPORT = "0"`) | ❌ Disabled (`IOT2050_DOCKER_SUPPORT = "0"`) |
+| **Kubernetes** | ❌ Not installed | ✅ KubeSolo + kubectl |
+| **Mosquitto MQTT** | ✅ Included (default) | ❌ Removed |
+| **systemd-networkd** | ✅ Static IP on eno2 | ✅ Static IP on eno2 |
+| **networkd-wait-online** | ❌ **Disabled** (prevents boot delays) | ✅ Enabled (waits for network) |
+| **Overlay Mount Security** | Standard | ✅ Hardened (`nodev,nosuid`) |
+| **TCF Agent** | ❌ Removed (security) | ❌ Removed (security) |
 
-This build adds:
-- ✅ **kubesolo**: Single-node Kubernetes distribution
-- ✅ **kubectl**: Kubernetes CLI tool (v1.34.0)
-- ✅ **systemd-networkd**: Static network configuration for eno2 interface
+#### Key Differences Explained
 
-And removes to optimize for Kubernetes:
-- ❌ **Node-RED** (disabled)
-- ❌ **Docker** (disabled, using KubeSolo instead)
-- ❌ **Mosquitto** MQTT broker (removed)
-
-### Security Hardening
-
-Both PLC-facing and VPN-facing configurations include security hardening measures:
-
-#### TCF Agent Removal
-
-**What is TCF Agent?**
-- Target Communication Framework (TCF) Agent is a debugging and development tool
-- Provides remote access to device internals for development/debugging
-- Opens network ports for remote connections
-
-**Why we remove it:**
-- ✅ **Reduces attack surface** - Eliminates unnecessary network services on production devices
-- ✅ **Closes debugging ports** - Prevents unauthorized remote access via TCF protocol
-- ✅ **Production hardening** - Development tools should not run on deployed systems
-- ✅ **Compliance** - Aligns with security best practices for industrial IoT deployments
-
-**Implementation:**
+**PLC-Facing Configuration** ([`kas/plc-facing-dgam-pr.yml`](kas/plc-facing-dgam-pr.yml)):
 ```yaml
-IMAGE_INSTALL:remove = "tcf-agent"
+local_conf_header:
+  security: |
+    IMAGE_INSTALL:remove = "tcf-agent"
+    IOT2050_DOCKER_SUPPORT = "0"
+    IMAGE_INSTALL:append = " systemd-networkd"
+    DISTRO_FEATURES:append = " disable-networkd-wait"  # ← Unique to PLC-facing
 ```
 
-This removal is configured in both [`kas/plc-facing-dgam-pr.yml`](kas/plc-facing-dgam-pr.yml) and [`kas/vpn-facing-dgam-pr.yml`](kas/vpn-facing-dgam-pr.yml).
+**VPN-Facing Configuration** ([`kas/vpn-facing-dgam-pr.yml`](kas/vpn-facing-dgam-pr.yml)):
+```yaml
+local_conf_header:
+  dgam_customization: |
+    IMAGE_INSTALL:remove = "tcf-agent"
+    IOT2050_DOCKER_SUPPORT = "0"
+    IOT2050_DEBIAN_DEBUG_PACKAGES:remove = "mosquitto mosquitto-clients"  # ← Unique
+    IMAGE_INSTALL:append = " kubesolo"                                     # ← Unique
+    IMAGE_INSTALL:append = " kubectl"                                      # ← Unique
+    IMAGE_INSTALL:append = " systemd-networkd"
+    INITRAMFS_OVERLAY_MOUNT_OPTION = "defaults,nodev,nosuid"              # ← Unique
+```
 
-### Prerequisites
+#### systemd-networkd-wait-online Behavior
 
-- Docker or Podman
-- ~50GB free disk space
-- Linux host (Ubuntu/Debian recommended)
+**Problem**: By default, `systemd-networkd-wait-online.service` waits for **all** managed network interfaces to have a carrier signal before marking the boot as complete. If a network cable is unplugged, the system enters a "degraded" state.
+
+**Solution for PLC-Facing Devices**:
+
+The PLC-facing configuration disables the wait-online service to prevent boot delays when network cables are not connected and enter in to degreaded mode:
+
+1. **Build-time feature flag**: `DISTRO_FEATURES:append = " disable-networkd-wait"`
+2. **Systemd preset file**: [`meta-dgam-pr/recipes-core/systemd-networkd/files/90-networkd-wait-online.preset`](meta-dgam-pr/recipes-core/systemd-networkd/files/90-networkd-wait-online.preset)
+   ```
+   disable systemd-networkd-wait-online.service
+   ```
+3. **Conditional installation**: The preset file is only installed when the `disable-networkd-wait` feature is present
+
+**Why VPN-Facing Keeps It Enabled**:
+- The VPN-facing device runs Kubernetes, which requires network connectivity
+- Waiting for network ensures services start with proper connectivity
+- The device is expected to have stable network connections in a data center environment
+
+For complete rack architecture and device placement, see the [DGAM PR Architecture Repository](https://github.com/DGAM-PR/architecture/tree/main/rack).
 
 ---
 

@@ -28,3 +28,4 @@ local_conf_header:
     IMAGE_INSTALL:remove = "tcf-agent"
     IOT2050_DOCKER_SUPPORT = "0"
     IMAGE_INSTALL:append = " systemd-networkd"
+    DISTRO_FEATURES:append = " disable-networkd-wait"
