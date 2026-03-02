@@ -1,3 +1,4 @@
 #!/bin/sh
-# Alias for kubectl
+# kubectl environment and aliases
+export KUBECONFIG=/var/lib/kubesolo/pki/admin/admin.kubeconfig
 alias k=kubectl
