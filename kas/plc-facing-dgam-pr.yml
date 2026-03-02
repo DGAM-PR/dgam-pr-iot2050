@@ -24,6 +24,10 @@ repos:
       .:
 
 local_conf_header:
+  root_password: |
+    USERS += "root"
+    USER_root[password] ??= "root"
+    USER_root[flags] ??= "clear-text-password force-passwd-change"
   security: |
     IMAGE_INSTALL:remove = "tcf-agent"
     IOT2050_DOCKER_SUPPORT = "0"
