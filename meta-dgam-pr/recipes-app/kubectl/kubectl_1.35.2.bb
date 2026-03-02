@@ -11,7 +11,7 @@ DPKG_ARCH = "arm64"
 
 # ARM64 release KubeCTL
 ## More info: https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/
-SRC_URI = "https://dl.k8s.io/release/v${PV}/bin/linux/arm64/kubectl;sha256sum=00b182d103a8a73da7a4d11e7526d0543dcf352f06cc63a1fde25ce9243f49a0"
+SRC_URI = "https://dl.k8s.io/release/v${PV}/bin/linux/arm64/kubectl;sha256sum=4c5d14b8673bd55f813a8965ad70d5150e3960ee5f274025e2286aea3a0fa8b6"
 
 S = "${WORKDIR}/src"
 
