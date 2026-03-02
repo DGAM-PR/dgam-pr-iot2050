@@ -616,12 +616,26 @@ U-Boot is the bootloader used by IOT2050 for hardware initialization and OS load
 # Boot from USB (when in U-Boot prompt)
 setenv devnum 0
 run bootcmd_usb0
+```
 
-#Boot from SD Card for Troubleshooting
-set mmc dev 0
-boot
+#### Boot from SD Card for Troubleshooting
+- Run the following command to see the current configuration:
 
-# Mount specific partition
+```bash
+printenv boot_targets
+```
+- You will likely see something like mmc1 mmc0 usb0, where mmc1 is the eMMC and mmc0 is the SD card.
+- To make the SD card the first priority, you need to move mmc0 to the front of the list. Run these commands:
+
+```bash
+setenv boot_targets mmc0 mmc1 usb0
+saveenv
+# Note: If your specific firmware version uses different names, ensure mmc0 (SD) comes before mmc1 (eMMC).
+```
+- Now run command `boot`
+
+#### Mount specific partition
+```
 load mmc 0:2 ${kernel_addr_r} linux.efi
 bootefi ${kernel_addr_r} ${fdtcontroladdr}
 ```
@@ -727,7 +741,7 @@ The file /etc/os-release should now hold the current firmware version in the for
 ```bash
 #Insert USB Stick that has the latest firmware files, mount it and copy it to ~
 mkdir /tmp/usb
-sudo mount /dev/sda1 /tmp/usb #could be sdb1 if you have both usb sticks plugged in
+sudo mount -t ext4 /dev/sda1 /tmp/usb #could be sdb1 if you have both usb sticks plugged in
 cp -R /tmp/usb/firmware ./
 cd ~/firmware
 
