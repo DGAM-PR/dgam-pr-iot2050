@@ -13,7 +13,7 @@ DPKG_ARCH = "arm64"
 # SRC_URI = "file://kubesolo-linux-arm64.zip;sha256sum=49718ed574234b64c4f3f866a94755d30a715578067dde6a736ad3eeae2e8110" 
 SRC_URI = "https://github.com/portainer/kubesolo/releases/download/v${PV}/kubesolo-v${PV}-linux-arm64.tar.gz;sha256sum=a6eeca4feecbc9a29e76d7b53955dc0b638a2c1fbadf76928394c91f77a141c9 \
            file://kubesolo.service \
-           file://kubesolo-prestart.sh \
+           file://kubesolo-start.sh \
            file://postinst \
 "
 
@@ -26,7 +26,7 @@ localbin = "${prefix}/local/bin"
 do_install() {
     install -d ${D}${bindir}
     install -m 0755 ${WORKDIR}/kubesolo ${D}${bindir}/kubesolo
-    install -m 0755 ${WORKDIR}/kubesolo-prestart.sh ${D}${bindir}/kubesolo-prestart.sh
+    install -m 0755 ${WORKDIR}/kubesolo-start.sh ${D}${bindir}/kubesolo-start.sh
     
     # Install systemd service file
     install -v -d ${D}/usr/lib/systemd/system/
@@ -34,7 +34,7 @@ do_install() {
 }
 
 FILES:${PN} = "${bindir}/kubesolo \
-               ${bindir}/kubesolo-prestart.sh \
+               ${bindir}/kubesolo-start.sh \
                /usr/lib/systemd/system/kubesolo.service"
 
 DEBIAN_DEPENDS = "iptables, libsqlite3-0"

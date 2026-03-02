@@ -404,15 +404,31 @@ The kubesolo service is automatically installed but requires per-device configur
 
 - **Configuration file**: `/var/lib/kubesolo/config`
 - **Service file**: `/usr/lib/systemd/system/kubesolo.service`
-- **Validation script**: `/usr/bin/kubesolo-prestart.sh`
+- **Start wrapper script**: `/usr/bin/kubesolo-start.sh`
 - **KUBECONFIG**: Set to `/var/lib/kubesolo/pki/admin/admin.kubeconfig`
+
+#### How It Works
+
+The service uses a wrapper script (`kubesolo-start.sh`) as its `ExecStart`. This script:
+1. Polls `/var/lib/kubesolo/config` every **60 seconds** until both required variables are set
+2. Applies a default of `true` for `KUBESOLO_LOCAL_STORAGE` if not explicitly configured
+3. Uses `exec /usr/bin/kubesolo` to replace itself with the kubesolo process — ensuring systemd tracks the correct PID and signals are delivered properly
 
 #### Automatic Retry Behavior
 
-If configuration is missing or invalid:
-1. ✅ Service retries every **60 seconds**
-2. ⚠️ After **5 failed attempts** in a **10-minute window**, systemd stops retrying
-3. 🛑 Service remains in failed state until configuration is provided or device reboots
+If configuration is missing or invalid, the wrapper script loops indefinitely — the service **never enters a failed state** while waiting for configuration. Once the config is valid, kubesolo starts automatically without any manual intervention.
+
+If kubesolo itself crashes after a successful start:
+- ✅ Service restarts after **60 seconds** (`Restart=on-failure`)
+- ✅ **No restart cap** — `StartLimitIntervalSec=0` means systemd will always retry
+
+#### Configuration Variables
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `KUBESOLO_PORTAINER_EDGE_ID` | ✅ Yes | — | Portainer Edge ID for this device |
+| `KUBESOLO_PORTAINER_EDGE_KEY` | ✅ Yes | — | Portainer Edge Key (base64) |
+| `KUBESOLO_LOCAL_STORAGE` | No | `true` | Enable (`true`) or disable (`false`) local storage |
 
 #### Per-Device Setup
 
@@ -425,6 +441,9 @@ vi /var/lib/kubesolo/config
 # Uncomment and set your device-specific values:
 KUBESOLO_PORTAINER_EDGE_ID=device-001
 KUBESOLO_PORTAINER_EDGE_KEY=YmFzZTY0ZW5jb2RlZGtleQ==
+
+# Optional: disable local storage (default is true)
+# KUBESOLO_LOCAL_STORAGE=false
 
 # Start the service
 systemctl start kubesolo
