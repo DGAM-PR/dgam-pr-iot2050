@@ -692,7 +692,7 @@ cd ~/firmware
 dpkg -r iot2050-firmware-update || true
 
 # Install new tool
-dpkg -i firmware-update-package_0.1.arm64.deb # (or similar)
+dpkg -i iot2050-firmware-update-1.1.0_arm64.deb # (or similar)
 apt -f install
 ```
 - Possible also do `apt install python3-packages`, however it should be installed after `apt -f`
