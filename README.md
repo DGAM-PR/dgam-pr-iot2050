@@ -12,7 +12,7 @@ This project extends the Siemens IOT2050 platform with custom functionality for 
 - [KubeSolo Configuration](#kubesolo-configuration)
 - [Network Configuration](#network-configuration)
 - [Advanced Topics](#advanced-topics)
-- [Troubleshooting](#troubleshooting)
+- [Troubleshooting](#troubleshooting)ƒ
 
 ---
 
@@ -246,7 +246,22 @@ scp <username>@<buildserver>:repos/dgam-pr-iot2050/build/tmp/deploy/images/iot20
 
 ## Deployment
 
-### Initial Installation
+### First-Install-Only Reminder (from Factory)
+
+1. Erase target eMMC (`/dev/mmcblk1`)
+
+> **Danger:** These commands permanently destroy all data on `/dev/mmcblk1`.  
+> Double-check the device with `lsblk` before running them.
+
+```bash
+# Wipe filesystem signatures and partition table
+sudo wipefs -a /dev/mmcblk1
+
+# (recommended) Zero out the entire eMMC
+sudo dd if=/dev/zero of=/dev/mmcblk1 bs=1M status=progress
+```
+
+### Subsequent Installations
 
 #### Method 1: Flash eMMC from Service Stick (Recommended)
 
