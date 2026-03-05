@@ -9,11 +9,11 @@ SRC_URI = "file://eno2-static.nmconnection"
 DEBIAN_DEPENDS = "network-manager"
 
 do_install() {
-    install -d ${D}${sysconfdir}/NetworkManager/system-connections
+    install -d ${D}/etc/NetworkManager/system-connections
     # NM requires 600 permissions on connection files — it silently ignores files
     # with looser permissions.
     install -m 0600 ${WORKDIR}/eno2-static.nmconnection \
-        ${D}${sysconfdir}/NetworkManager/system-connections/eno2-static.nmconnection
+        ${D}/etc/NetworkManager/system-connections/eno2-static.nmconnection
 }
 
-FILES:${PN} = "${sysconfdir}/NetworkManager/system-connections/eno2-static.nmconnection"
+FILES:${PN} = "/etc/NetworkManager/system-connections/eno2-static.nmconnection"
