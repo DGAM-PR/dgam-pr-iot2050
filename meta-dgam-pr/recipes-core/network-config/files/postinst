@@ -1,0 +1,12 @@
+#!/bin/sh
+
+# NetworkManager silently ignores connection files that are not mode 600.
+# Enforce the correct permissions here at dpkg install time, since the
+# dpkg-raw packaging step can override the permissions set during do_install.
+chmod 600 /etc/NetworkManager/system-connections/eno2-static.nmconnection
+
+# Reload NM connection profiles so the new profile is picked up immediately
+# (nmcli may not be available during early image setup, so guard against that)
+if command -v nmcli > /dev/null 2>&1; then
+    nmcli connection reload || true
+fi
