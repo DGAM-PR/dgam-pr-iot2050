@@ -36,3 +36,7 @@ local_conf_header:
     IMAGE_INSTALL:append = " kubectl"
     IMAGE_INSTALL:append = " network-config"
     INITRAMFS_OVERLAY_MOUNT_OPTION = "defaults,nodev,nosuid"
+
+  # Needed for AMD64 Builds, otherwise the build system will try to use the host's cross compiler which is not compatible with the iot2050 target architecture
+  cross_compile: |
+    ISAR_CROSS_COMPILE = "0"
