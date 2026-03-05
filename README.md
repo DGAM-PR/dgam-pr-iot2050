@@ -258,7 +258,7 @@ scp <username>@<buildserver>:repos/dgam-pr-iot2050/build/tmp/deploy/images/iot20
 sudo wipefs -a /dev/mmcblk1
 
 # (recommended) Zero out the entire eMMC
-sudo dd if=/dev/zero of=/dev/mmcblk1 bs=1M status=progress
+sudo dd if=/dev/zero of=/dev/mmcblk1 bs=4M status=progress conv=fsync
 ```
 
 ### Subsequent Installations
