@@ -487,64 +487,86 @@ systemctl reset-failed kubesolo
 
 ## Network Configuration
 
-### Static IP for eno2 Interface
+Both device configurations use **NetworkManager** to manage network interfaces. NetworkManager handles DNS, iptables masquerade rules for Kubernetes pod networking, and interface configuration automatically.
 
-Both device configurations include a static network setup for the `eno2` interface via systemd-networkd.
+### Interface Overview
 
-#### Configuration Details
+| Interface | Config | Description |
+|-----------|--------|-------------|
+| `eno1` | Static `192.168.200.1/24` | Direct laptop connection for troubleshooting |
+| `eno2` | Static `192.168.1.3/24` | PLC / VPN-facing network (4G modem gateway) |
 
-The network configuration is automatically deployed to `/etc/systemd/network/10-eno2.network`:
+`eno1` uses its default NM-managed profile (pre-configured in the base image). `eno2` gets a static IP via a custom NM connection profile deployed by the `network-config` recipe.
+
+### eno2 — Static IP (NetworkManager profile)
+
+The NM connection profile is deployed to **`/etc/NetworkManager/system-connections/eno2-static.nmconnection`**:
 
 ```ini
-[Match]
-Name=eno2
+[connection]
+id=eno2-static
+type=ethernet
+interface-name=eno2
+autoconnect=true
 
-[Network]
-DHCP=no
-Address=192.168.1.3/24
-Gateway=192.168.1.1
-DNS=1.1.1.1
-DNS=1.0.0.1
+[ipv4]
+method=manual
+addresses=192.168.1.3/24
+gateway=192.168.1.1
+dns=1.1.1.1;1.0.0.1;
+
+[ipv6]
+method=disabled
 ```
-
-#### Network Settings
 
 | Parameter | Value | Description |
 |-----------|-------|-------------|
-| Interface | `eno2` | Second Ethernet interface |
 | IP Address | `192.168.1.3/24` | Static IP with /24 subnet |
-| Gateway | `192.168.1.1` | Default gateway |
-| DNS | `1.1.1.1`, `1.0.0.1` | Cloudflare DNS servers |
+| Gateway | `192.168.1.1` | 4G modem / default gateway |
+| DNS | `1.1.1.1`, `1.0.0.1` | Cloudflare DNS (managed by NM) |
 | DHCP | Disabled | Static configuration only |
 
-#### Implementation
+> ⚠️ NM requires **`600` permissions** on connection files. Files with looser permissions are silently ignored.
 
-The network configuration is provided by the [`systemd-networkd`](meta-dgam-pr/recipes-core/systemd-networkd/systemd-networkd_%.bbappend) recipe:
+### Implementation
 
-- **Recipe**: [`meta-dgam-pr/recipes-core/systemd-networkd/systemd-networkd_%.bbappend`](meta-dgam-pr/recipes-core/systemd-networkd/systemd-networkd_%.bbappend)
-- **Config file**: [`meta-dgam-pr/recipes-core/systemd-networkd/files/10-eno2.network`](meta-dgam-pr/recipes-core/systemd-networkd/files/10-eno2.network)
-- **Installed to**: `/etc/systemd/network/10-eno2.network`
+- **Recipe**: [`meta-dgam-pr/recipes-core/network-config/network-config_1.0.bb`](meta-dgam-pr/recipes-core/network-config/network-config_1.0.bb)
+- **eno2 profile**: [`meta-dgam-pr/recipes-core/network-config/files/eno2-static.nmconnection`](meta-dgam-pr/recipes-core/network-config/files/eno2-static.nmconnection) → `/etc/NetworkManager/system-connections/eno2-static.nmconnection`
 
-#### Verifying Network Configuration
+### Verifying Network Configuration
 
-After deployment, verify the network setup:
+After deployment:
 
 ```bash
-# Check network interface status
-ip addr show eno2
+# Check eno2 has the static IP
+ip addr show eno2   # should show 192.168.1.3/24
 
-# Verify systemd-networkd configuration
-networkctl status eno2
+# Check NM connection status
+nmcli connection show
+nmcli connection show eno2-static
 
-# Test connectivity
-ping -c 4 192.168.1.1
+# Confirm DNS works
+ping -c 2 1.1.1.1       # connectivity (no DNS)
+ping -c 2 google.com    # DNS resolution
 ```
 
-#### Customizing Network Settings
+### Adjusting Network Settings on a Running Device
 
-To modify the network configuration for your deployment:
+```bash
+# Edit the NM connection profile
+vi /etc/NetworkManager/system-connections/eno2-static.nmconnection
 
-1. Edit [`meta-dgam-pr/recipes-core/systemd-networkd/files/10-eno2.network`](meta-dgam-pr/recipes-core/systemd-networkd/files/10-eno2.network)
+# Reload and apply
+nmcli connection reload
+nmcli connection up eno2-static
+
+# Verify
+ip addr show eno2
+```
+
+### Customizing Network Settings in the Image
+
+1. Edit [`meta-dgam-pr/recipes-core/network-config/files/eno2-static.nmconnection`](meta-dgam-pr/recipes-core/network-config/files/eno2-static.nmconnection)
 2. Update IP address, gateway, or DNS as needed
 3. Rebuild the image using kas
 4. Deploy the updated `.swu` file
