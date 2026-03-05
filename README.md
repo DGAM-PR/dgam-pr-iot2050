@@ -170,6 +170,20 @@ Choose the appropriate configuration for your device type:
 
 ⚠️ The `--isar` flag is **required** because the IOT2050 platform uses ISAR rather than standard Yocto/OpenEmbedded.
 
+### Building on AMD64 (x86_64) Hosts
+
+If you are building on an **AMD64 (x86_64)** machine, you must use the `building-on-amd64` branch of this repository instead of `main`. This branch adds the following override to the KAS configuration:
+
+```yaml
+local_conf_header:
+  cross_compile: |
+    ISAR_CROSS_COMPILE = "0"
+```
+
+**Why this is needed**: When building for the IOT2050 (ARM64 target) on an AMD64 host, ISAR's default behaviour is to use the host system's cross-compiler toolchain. However, the cross-compiler available on a typical AMD64 Debian/Ubuntu host is **not compatible** with the IOT2050 target architecture as configured by `meta-iot2050`. Setting `ISAR_CROSS_COMPILE = "0"` disables this and instructs ISAR to use its own internal Debian-based build environment (via `qemu-user-static` binfmt emulation) instead, which is the correct and supported method for this project.
+
+> ℹ️ On native ARM64 build hosts (e.g. a Raspberry Pi or an ARM64 CI runner), `ISAR_CROSS_COMPILE` does not need to be overridden and the `main` branch can be used directly.
+
 ### Build Options
 
 Replace `<config-file>` with either `kas/plc-facing-dgam-pr.yml` or `kas/vpn-facing-dgam-pr.yml`:
