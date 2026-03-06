@@ -12,7 +12,7 @@ This project extends the Siemens IOT2050 platform with custom functionality for 
 - [KubeSolo Configuration](#kubesolo-configuration)
 - [Network Configuration](#network-configuration)
 - [Advanced Topics](#advanced-topics)
-- [Troubleshooting](#troubleshooting)ƒ
+- [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -800,6 +800,53 @@ Confirm that the reported firmware version matches the firmware package you inst
 ---
 
 ## Troubleshooting
+
+### Cleaning the KubeSolo State
+
+When troubleshooting or performing a fresh re-installation of the KubeSolo environment on the IOT2050, you may need to wipe the runtime state without deleting your configuration file.
+
+Because Kubernetes and Containerd use active mounts (like `tmpfs` for secrets and `shm` for sandboxes), a simple `rm -rf` will often fail with a `Device or resource busy` error. Follow these steps to safely unmount and clean the directory.
+
+#### 1. Stop the KubeSolo Service
+
+Ensure the service is stopped so it doesn't attempt to re-mount volumes while you are cleaning.
+
+```bash
+systemctl stop kubesolo.service
+```
+
+#### 2. Unmount Active Volumes
+
+Before deleting files, you must lazily unmount all active container and pod volumes. This command finds all mount points under the kubesolo directory and detaches them.
+
+```bash
+# Unmount all sub-mounts under /var/lib/kubesolo/
+mount | awk '{print $3}' | grep '^/var/lib/kubesolo/' | sort -r | xargs -r umount -l
+```
+
+#### 3. Remove State Files (Preserving Config)
+
+Once the mounts are cleared, you can remove all directories and files except for the config file.
+
+```bash
+# Navigate to the directory
+cd /var/lib/kubesolo/
+
+# Remove everything except the 'config' file
+find . -maxdepth 1 ! -name 'config' ! -name '.' -exec rm -rf {} +
+```
+
+#### 4. Verify and Restart
+
+Check that only the config file remains, then restart the service to initialize a fresh cluster state.
+
+```bash
+# Verify remaining files
+ls -F /var/lib/kubesolo/
+
+# Restart the service
+systemctl start kubesolo.service
+```
 
 ### Container Version Issues
 
