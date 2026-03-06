@@ -18,6 +18,16 @@ do_install() {
     # install time because dpkg-raw can override permissions set here.
     install -m 0600 ${WORKDIR}/eno2-static.nmconnection \
         ${D}/etc/NetworkManager/system-connections/eno2-static.nmconnection
+
+    # Mask systemd-networkd-wait-online — not needed since we use NetworkManager.
+    # A symlink to /dev/null is exactly what `systemctl mask` writes to disk;
+    # shipping it in the package makes the masking declarative and permanent.
+    install -d ${D}/etc/systemd/system
+    ln -sf /dev/null \
+        ${D}/etc/systemd/system/systemd-networkd-wait-online.service
 }
 
-FILES:${PN} = "/etc/NetworkManager/system-connections/eno2-static.nmconnection"
+FILES:${PN} = " \
+    /etc/NetworkManager/system-connections/eno2-static.nmconnection \
+    /etc/systemd/system/systemd-networkd-wait-online.service \
+"
