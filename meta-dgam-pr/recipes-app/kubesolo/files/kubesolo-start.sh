@@ -30,6 +30,9 @@ while true; do
         continue
     fi
 
+    # Export all variables so they are inherited by the exec'd kubesolo process
+    export KUBESOLO_PORTAINER_EDGE_ID
+    export KUBESOLO_PORTAINER_EDGE_KEY
     # Default KUBESOLO_LOCAL_STORAGE to true if not explicitly set
     export KUBESOLO_LOCAL_STORAGE="${KUBESOLO_LOCAL_STORAGE:-true}"
 
