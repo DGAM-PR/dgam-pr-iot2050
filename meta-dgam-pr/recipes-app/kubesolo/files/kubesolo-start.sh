@@ -40,4 +40,7 @@ while true; do
     break
 done
 
-exec /usr/bin/kubesolo
+exec /usr/bin/kubesolo \
+    --portainer-edge-id "$KUBESOLO_PORTAINER_EDGE_ID" \
+    --portainer-edge-key "$KUBESOLO_PORTAINER_EDGE_KEY" \
+    --local-storage "$KUBESOLO_LOCAL_STORAGE"
