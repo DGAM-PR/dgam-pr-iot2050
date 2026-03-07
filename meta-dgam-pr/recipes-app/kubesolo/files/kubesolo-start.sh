@@ -33,8 +33,16 @@ while true; do
     # Export all variables so they are inherited by the exec'd kubesolo process
     export KUBESOLO_PORTAINER_EDGE_ID
     export KUBESOLO_PORTAINER_EDGE_KEY
-    # Default KUBESOLO_LOCAL_STORAGE to false if not explicitly set
+    # Default KUBESOLO_LOCAL_STORAGE to false if not explicitly set in config.
+    # The binary reads this env var directly and supports --[no-]local-storage flags.
     export KUBESOLO_LOCAL_STORAGE="${KUBESOLO_LOCAL_STORAGE:-false}"
+
+    # Translate KUBESOLO_LOCAL_STORAGE env var to the correct CLI flag
+    if [ "$KUBESOLO_LOCAL_STORAGE" = "true" ]; then
+        LOCAL_STORAGE_FLAG="--local-storage"
+    else
+        LOCAL_STORAGE_FLAG="--no-local-storage"
+    fi
 
     echo "Configuration validated successfully (local storage: $KUBESOLO_LOCAL_STORAGE), starting kubesolo..."
     break
@@ -43,4 +51,4 @@ done
 exec /usr/bin/kubesolo \
     --portainer-edge-id "$KUBESOLO_PORTAINER_EDGE_ID" \
     --portainer-edge-key "$KUBESOLO_PORTAINER_EDGE_KEY" \
-    --local-storage "$KUBESOLO_LOCAL_STORAGE"
+    "$LOCAL_STORAGE_FLAG"
