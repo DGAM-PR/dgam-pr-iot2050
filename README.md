@@ -495,6 +495,10 @@ systemctl restart kubesolo
 
 # Reset failure counter (if service hit restart limit)
 systemctl reset-failed kubesolo
+
+# Inspect the environment variables actually used by the running kubesolo systemd process
+# (variables are scoped to the service process and not visible in your shell)
+cat /proc/$(systemctl show kubesolo.service --property=MainPID --value)/environ | tr '\0' '\n' | grep KUBESOLO
 ```
 
 ---
