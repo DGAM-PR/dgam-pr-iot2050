@@ -44,7 +44,7 @@ while true; do
         LOCAL_STORAGE_FLAG="--no-local-storage"
     fi
 
-    echo "Configuration validated successfully (local storage: $KUBESOLO_LOCAL_STORAGE), starting kubesolo..."
+    echo "Configuration validated successfully | edge-id: $KUBESOLO_PORTAINER_EDGE_ID | key: ${KUBESOLO_PORTAINER_EDGE_KEY:0:5}... | local-storage: $LOCAL_STORAGE_FLAG | starting kubesolo..."
     break
 done
 
