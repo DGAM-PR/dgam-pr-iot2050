@@ -440,7 +440,7 @@ The kubesolo service is automatically installed but requires per-device configur
 
 The service uses a wrapper script (`kubesolo-start.sh`) as its `ExecStart`. This script:
 1. Polls `/var/lib/kubesolo/config` every **60 seconds** until both required variables are set
-2. Applies a default of `true` for `KUBESOLO_LOCAL_STORAGE` if not explicitly configured
+2. Applies a default of `false` for `KUBESOLO_LOCAL_STORAGE` if not explicitly configured
 3. Uses `exec /usr/bin/kubesolo` to replace itself with the kubesolo process — ensuring systemd tracks the correct PID and signals are delivered properly
 
 #### Automatic Retry Behavior
@@ -457,7 +457,7 @@ If kubesolo itself crashes after a successful start:
 |---|---|---|---|
 | `KUBESOLO_PORTAINER_EDGE_ID` | ✅ Yes | — | Portainer Edge ID for this device |
 | `KUBESOLO_PORTAINER_EDGE_KEY` | ✅ Yes | — | Portainer Edge Key (base64) |
-| `KUBESOLO_LOCAL_STORAGE` | No | `true` | Enable (`true`) or disable (`false`) local storage |
+| `KUBESOLO_LOCAL_STORAGE` | No | `false` | Enable (`true`) or disable (`false`) local storage |
 
 #### Per-Device Setup
 
@@ -471,8 +471,8 @@ vi /var/lib/kubesolo/config
 KUBESOLO_PORTAINER_EDGE_ID=device-001
 KUBESOLO_PORTAINER_EDGE_KEY=YmFzZTY0ZW5jb2RlZGtleQ==
 
-# Optional: disable local storage (default is true)
-# KUBESOLO_LOCAL_STORAGE=false
+# Optional: enable local storage (default is false)
+# KUBESOLO_LOCAL_STORAGE=true
 
 # Start the service
 systemctl start kubesolo

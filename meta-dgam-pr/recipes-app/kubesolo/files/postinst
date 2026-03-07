@@ -12,8 +12,8 @@ if [ ! -f /var/lib/kubesolo/config ]; then
 # KUBESOLO_PORTAINER_EDGE_ID=your-edge-id-here
 # KUBESOLO_PORTAINER_EDGE_KEY=your-base64-key-here
 
-# Optional: disable local storage (default: true)
-# KUBESOLO_LOCAL_STORAGE=false
+# Optional: enable local storage (default: false)
+# KUBESOLO_LOCAL_STORAGE=true
 EOF
     chmod 600 /var/lib/kubesolo/config
 fi

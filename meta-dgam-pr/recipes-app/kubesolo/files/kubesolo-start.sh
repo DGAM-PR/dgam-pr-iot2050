@@ -33,8 +33,8 @@ while true; do
     # Export all variables so they are inherited by the exec'd kubesolo process
     export KUBESOLO_PORTAINER_EDGE_ID
     export KUBESOLO_PORTAINER_EDGE_KEY
-    # Default KUBESOLO_LOCAL_STORAGE to true if not explicitly set
-    export KUBESOLO_LOCAL_STORAGE="${KUBESOLO_LOCAL_STORAGE:-true}"
+    # Default KUBESOLO_LOCAL_STORAGE to false if not explicitly set
+    export KUBESOLO_LOCAL_STORAGE="${KUBESOLO_LOCAL_STORAGE:-false}"
 
     echo "Configuration validated successfully (local storage: $KUBESOLO_LOCAL_STORAGE), starting kubesolo..."
     break
