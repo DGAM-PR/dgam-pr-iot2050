@@ -1,0 +1,8 @@
+#!/bin/sh
+
+# Restart mosquitto so the new configuration in conf.d/ is picked up.
+# Guard against environments where systemctl is not yet available
+# (e.g. during early image build / chroot install).
+if command -v systemctl > /dev/null 2>&1 && systemctl is-system-running --quiet 2>/dev/null; then
+    systemctl restart mosquitto || true
+fi

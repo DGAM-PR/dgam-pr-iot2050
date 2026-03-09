@@ -29,12 +29,14 @@ local_conf_header:
     USER_root[password] ??= "root"
     USER_root[flags] ??= "clear-text-password force-passwd-change"
   dgam_customization: |
+    # Strip unwanted packages
     IMAGE_INSTALL:remove = "tcf-agent"
     IOT2050_DOCKER_SUPPORT = "0"
+    # Extra debug/tooling packages
     IOT2050_DEBIAN_DEBUG_PACKAGES:remove = "mosquitto mosquitto-clients"
-    IMAGE_INSTALL:append = " kubesolo"
-    IMAGE_INSTALL:append = " kubectl"
-    IMAGE_INSTALL:append = " network-config"
+    # Custom image packages
+    IMAGE_INSTALL:append = " network-config kubesolo kubectl"
+    # Security hardening
     INITRAMFS_OVERLAY_MOUNT_OPTION = "defaults,nodev,nosuid"
 
 
