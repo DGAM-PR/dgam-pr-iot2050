@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<zone>
+  <short>Public</short>
+  <description>Public zone with MQTT and Node-RED ports open for IOT2050 management access</description>
+  <service name="dhcpv6-client"/>
+  <service name="ssh"/>
+  <service name="mqtt"/>
+  <service name="node-red"/>
+</zone>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<service>
+  <short>MQTT</short>
+  <description>MQTT broker listener on port 1883 (TCP)</description>
+  <port protocol="tcp" port="1883"/>
+</service>

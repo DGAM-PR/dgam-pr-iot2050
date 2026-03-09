@@ -1,0 +1,8 @@
+#!/bin/sh
+
+# Reload firewalld so the new service definitions and zone override are
+# picked up immediately. Guard against environments where firewalld is not
+# yet running (e.g. during early image build / chroot install).
+if command -v firewall-cmd > /dev/null 2>&1 && firewall-cmd --state > /dev/null 2>&1; then
+    firewall-cmd --reload || true
+fi

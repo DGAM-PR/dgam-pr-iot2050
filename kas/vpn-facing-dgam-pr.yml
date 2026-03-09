@@ -35,7 +35,7 @@ local_conf_header:
     # Extra debug/tooling packages
     IOT2050_DEBIAN_DEBUG_PACKAGES:remove = "mosquitto mosquitto-clients"
     # Custom image packages
-    IMAGE_INSTALL:append = " network-config kubesolo kubectl"
+    IMAGE_INSTALL:append = " network-config kubesolo kubectl firewall-config-iot2050"
     # Security hardening
     INITRAMFS_OVERLAY_MOUNT_OPTION = "defaults,nodev,nosuid"
 

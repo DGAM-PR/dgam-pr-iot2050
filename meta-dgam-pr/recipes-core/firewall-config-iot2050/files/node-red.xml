@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<service>
+  <short>Node-RED</short>
+  <description>Node-RED web editor and HTTP endpoint on port 1880 (TCP)</description>
+  <port protocol="tcp" port="1880"/>
+</service>
