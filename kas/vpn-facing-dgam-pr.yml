@@ -36,3 +36,12 @@ local_conf_header:
     IMAGE_INSTALL:append = " kubectl"
     IMAGE_INSTALL:append = " network-config"
     INITRAMFS_OVERLAY_MOUNT_OPTION = "defaults,nodev,nosuid"
+
+
+## Must build in Node REd Container
+# node-red-node-serialport
+# node-red-contrib-buffer-parser
+# node-red-contrib-msg-speed
+# node-red-node-pushover
+# node-red-node-contrib-mqtt-sparkplug-+
+# @cameo69/node-red-rate-limit

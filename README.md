@@ -41,7 +41,7 @@ This repository supports two IOT2050 device configurations based on the [DGAM PR
 #### PLC-Facing Device (IOT1)
 - **Purpose**: Direct PLC connectivity for data acquisition
 - **Configuration**: [`kas/plc-facing-dgam-pr.yml`](kas/plc-facing-dgam-pr.yml)
-- **Features**: Standard IOT2050 SWUpdate image without Kubernetes
+- **Features**: Standard IOT2050 SWUpdate image with Node-RED and PLC-specific nodes (OPC-UA, Modbus, S7, Serial)
 - **Build command**: `./kas-container --isar build kas/plc-facing-dgam-pr.yml`
 
 #### VPN-Facing Device (IOT2)
@@ -129,7 +129,25 @@ IMAGE_INSTALL:append = " kubectl"        # Add kubectl package
 INITRAMFS_OVERLAY_MOUNT_OPTION = "defaults,nodev,nosuid"  # Hardened mounts
 ```
 
-The PLC-facing configuration ([`kas/plc-facing-dgam-pr.yml`](kas/plc-facing-dgam-pr.yml)) uses default SWU meta-iot2050 settings without these overrides.
+The PLC-facing configuration ([`kas/plc-facing-dgam-pr.yml`](kas/plc-facing-dgam-pr.yml)) includes the following customizations:
+
+```yaml
+IOT2050_NODE_RED_SUPPORT = "1"           # Enable Node-RED
+IOT2050_META_NODE_RED_PACKAGES = "mraa node-red node-red-gpio node-red-contrib-opcua node-red-contrib-modbus node-red-contrib-s7 node-red-node-serialport"
+IOT2050_DEBIAN_DEBUG_PACKAGES:append = " mosquitto mosquitto-clients"  # Ensure MQTT broker is present
+```
+
+**Node-RED package selection decision**: The default `node-red-preinstalled-nodes` meta-package from `meta-iot2050` includes packages not needed for PLC communication (`node-red-dashboard`, `node-red-node-sqlite`, `node-red-node-random`, `mindconnect-node-red-contrib-mindconnect`). Instead, `IOT2050_META_NODE_RED_PACKAGES` is explicitly set to include only the packages required for PLC-facing operation:
+
+| Package | Purpose |
+|---|---|
+| `mraa` | Hardware abstraction (GPIO, I2C, SPI) |
+| `node-red` | Node-RED runtime |
+| `node-red-gpio` | GPIO nodes for IOT2050 hardware |
+| `node-red-contrib-opcua` | OPC-UA protocol nodes |
+| `node-red-contrib-modbus` | Modbus protocol nodes |
+| `node-red-contrib-s7` | Siemens S7 PLC communication nodes |
+| `node-red-node-serialport` | Serial port nodes |
 
 ### Layer Compatibility
 
