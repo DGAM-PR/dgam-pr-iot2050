@@ -35,7 +35,7 @@ local_conf_header:
     # Extra debug/tooling packages
     IOT2050_DEBIAN_DEBUG_PACKAGES:append = " mosquitto mosquitto-clients"
     # Custom image packages
-    IMAGE_INSTALL:append = " network-config mosquitto-config firewall-config-iot2050"
+    IMAGE_INSTALL:append = " network-config mosquitto-config firewall-config-iot2050 node-red-config"
     # Node-RED feature
     IOT2050_NODE_RED_SUPPORT = "1"
     IOT2050_META_NODE_RED_PACKAGES = "mraa node-red node-red-gpio node-red-contrib-opcua node-red-contrib-modbus node-red-contrib-s7 node-red-node-serialport"

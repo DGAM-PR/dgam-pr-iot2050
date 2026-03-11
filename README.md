@@ -10,6 +10,7 @@ This project extends the Siemens IOT2050 platform with custom functionality for 
 - [Deployment](#deployment)
 - [SWUpdate Usage](#swupdate-usage)
 - [KubeSolo Configuration](#kubesolo-configuration)
+- [Node-RED Serial Port Access](#node-red-serial-port-access-devttyusb0)
 - [Network Configuration](#network-configuration)
 - [Advanced Topics](#advanced-topics)
 - [Troubleshooting](#troubleshooting)
@@ -148,6 +149,25 @@ IOT2050_DEBIAN_DEBUG_PACKAGES:append = " mosquitto mosquitto-clients"  # Ensure 
 | `node-red-contrib-modbus` | Modbus protocol nodes |
 | `node-red-contrib-s7` | Siemens S7 PLC communication nodes |
 | `node-red-node-serialport` | Serial port nodes |
+
+### Node-RED Serial Port Access (`/dev/ttyUSB0`)
+
+Node-RED on the PLC-facing device runs as `root` (the default for the IOT2050 Node-RED service). To allow it to open serial devices such as `/dev/ttyUSB0` (used by Modbus, S7, and serial-port nodes), the `root` user must be a member of the `dialout` group.
+
+This is handled automatically by the [`node-red-config`](meta-dgam-pr/recipes-app/node-red-config/node-red-config_1.0.bb) recipe, which ships a `postinst` script that runs at package install time:
+
+```sh
+usermod -a -G dialout root
+systemctl restart nodered
+```
+
+The recipe is included only in the PLC-facing image (`IMAGE_INSTALL:append` in [`kas/plc-facing-dgam-pr.yml`](kas/plc-facing-dgam-pr.yml)). The VPN-facing device does **not** include this recipe — Node-RED there runs inside a container and only *receives* data over MQTT; it does not open serial devices directly.
+
+> ℹ️ If you ever need to verify the group membership on a running device:
+> ```bash
+> id root          # should list dialout in the groups
+> ls -l /dev/ttyUSB0   # should show crw-rw---- with group dialout
+> ```
 
 ### Layer Compatibility
 
