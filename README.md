@@ -12,6 +12,7 @@ This project extends the Siemens IOT2050 platform with custom functionality for 
 - [KubeSolo Configuration](#kubesolo-configuration)
 - [Node-RED Serial Port Access](#node-red-serial-port-access-devttyusb0)
 - [Network Configuration](#network-configuration)
+- [Firewall Configuration](#firewall-configuration)
 - [Advanced Topics](#advanced-topics)
 - [Troubleshooting](#troubleshooting)
 
@@ -626,6 +627,72 @@ ip addr show eno2
 2. Update IP address, gateway, or DNS as needed
 3. Rebuild the image using kas
 4. Deploy the updated `.swu` file
+
+---
+
+## Firewall Configuration
+
+Both device images use **firewalld** with a shared `public` zone configuration deployed by the [`firewall-config-iot2050`](meta-dgam-pr/recipes-core/firewall-config-iot2050/firewall-config-iot2050_1.0.bb) recipe.
+
+### Recipe Files
+
+| File | Installed to | Purpose |
+|------|-------------|---------|
+| [`public.xml`](meta-dgam-pr/recipes-core/firewall-config-iot2050/files/public.xml) | `/etc/firewalld/zones/public.xml` | Zone definition (open ports, masquerade, forward) |
+| [`mqtt.xml`](meta-dgam-pr/recipes-core/firewall-config-iot2050/files/mqtt.xml) | `/etc/firewalld/services/mqtt.xml` | Custom service: MQTT (1883/tcp) |
+| [`node-red.xml`](meta-dgam-pr/recipes-core/firewall-config-iot2050/files/node-red.xml) | `/etc/firewalld/services/node-red.xml` | Custom service: Node-RED (1880/tcp) |
+| [`postinst`](meta-dgam-pr/recipes-core/firewall-config-iot2050/files/postinst) | (dpkg hook) | Runs `firewall-cmd --reload` after install |
+
+### Public Zone — Open Services
+
+The `public` zone allows the following inbound services on both devices:
+
+| Service | Port | Purpose |
+|---------|------|---------|
+| `ssh` | 22/tcp | Remote shell access |
+| `dhcpv6-client` | 546/udp | DHCPv6 client |
+| `mqtt` | 1883/tcp | MQTT broker (mosquitto) |
+| `node-red` | 1880/tcp | Node-RED web UI |
+
+### IP Masquerade and Forwarding
+
+The zone also enables `<masquerade/>` and `<forward/>`:
+
+```xml
+<masquerade/>
+<forward/>
+```
+
+These are equivalent to the following runtime commands (which firewalld translates into the appropriate nftables/iptables rules automatically):
+
+```bash
+firewall-cmd --zone=public --add-masquerade --permanent
+firewall-cmd --zone=public --add-forward --permanent
+```
+
+**Why these are needed — VPN-facing device:**
+kubesolo's CNI creates a pod-network bridge (e.g. `cni0` / `flannel.1`) on a separate subnet. Without masquerade and forwarding enabled in the firewall zone, forwarded packets from the CNI bridge are dropped before they can reach the outside network. These settings allow pod traffic to be correctly NAT-ed and routed.
+
+**Why these are safe — PLC-facing device:**
+PLC ↔ device communication is static on both ends within the same `192.168.1.x/24` subnet on `eno2`. Same-subnet traffic never traverses the firewall zone router, so masquerade and forward are never invoked for it. There is no CNI bridge on the PLC-facing device, so `<forward/>` has nothing to act on.
+
+> ℹ️ firewalld also automatically manages the underlying `net.ipv4.ip_forward` kernel sysctl when masquerade is enabled in a zone — no separate sysctl configuration is required.
+
+### Verifying Firewall State on a Running Device
+
+```bash
+# Show active zone and its rules
+firewall-cmd --zone=public --list-all
+
+# Confirm masquerade is active
+firewall-cmd --zone=public --query-masquerade
+
+# Confirm forwarding is active
+firewall-cmd --zone=public --query-forward
+
+# Reload after manual changes
+firewall-cmd --reload
+```
 
 ---
 
