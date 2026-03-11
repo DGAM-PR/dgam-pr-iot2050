@@ -11,7 +11,7 @@ repos:
   meta-iot2050:
     url: https://github.com/siemens/meta-iot2050
     path: meta-iot2050
-    branch: master
+    branch: stable/V01.06
     layers:
       meta:
       meta-example: # REQUIRED for iot2050-image-swu-example
