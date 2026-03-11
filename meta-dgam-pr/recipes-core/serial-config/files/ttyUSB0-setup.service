@@ -1,0 +1,12 @@
+[Unit]
+Description=Set serial parameters for /dev/ttyUSB0 (IOT2050 X30 UART) to 230400 8N1
+After=dev-ttyUSB0.device
+Requires=dev-ttyUSB0.device
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/stty -F /dev/ttyUSB0 230400 cs8 -parenb -cstopb
+
+[Install]
+WantedBy=multi-user.target
+WantedBy=dev-ttyUSB0.device

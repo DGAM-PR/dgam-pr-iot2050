@@ -13,6 +13,7 @@ This project extends the Siemens IOT2050 platform with custom functionality for 
 - [Node-RED Serial Port Access](#node-red-serial-port-access-devttyusb0)
 - [Network Configuration](#network-configuration)
 - [Firewall Configuration](#firewall-configuration)
+- [Serial Configuration](#serial-configuration)
 - [Advanced Topics](#advanced-topics)
 - [Troubleshooting](#troubleshooting)
 
@@ -30,9 +31,13 @@ This project extends the Siemens IOT2050 platform with custom functionality for 
 ├── meta-dgam-pr/                # Custom Yocto/ISAR layer
 │   ├── conf/
 │   │   └── layer.conf          # Layer configuration
-│   └── recipes-app/
-│       ├── kubectl/            # Kubernetes CLI tool
-│       └── kubesolo/           # Single-node Kubernetes setup
+│   ├── recipes-app/
+│   │   ├── kubectl/            # Kubernetes CLI tool
+│   │   └── kubesolo/           # Single-node Kubernetes setup
+│   └── recipes-core/
+│       ├── firewall-config-iot2050/  # Firewalld zone and service definitions
+│       ├── network-config/           # NetworkManager eno2 static IP profile
+│       └── serial-config/            # /dev/ttyUSB0 baud rate (230400 8N1)
 └── meta-iot2050/               # Siemens IOT2050 base layer (submodule/checkout)
 ```
 
@@ -692,6 +697,58 @@ firewall-cmd --zone=public --query-forward
 
 # Reload after manual changes
 firewall-cmd --reload
+```
+
+---
+
+## Serial Configuration
+
+Both device images include the `serial-config` recipe, which permanently configures `/dev/ttyUSB0` (the IOT2050 X30 onboard UART, exposed via an internal USB-to-serial bridge) to **230400 baud, 8N1** on every boot.
+
+### Why This Is Needed
+
+The kernel resets the serial port parameters to defaults on every boot. Without this configuration, the VPN-facing and PLC-facing devices cannot communicate over the X30 serial link.
+
+### Implementation
+
+| File | Installed to | Purpose |
+|------|-------------|---------|
+| [`ttyUSB0-setup.service`](meta-dgam-pr/recipes-core/serial-config/files/ttyUSB0-setup.service) | `/etc/systemd/system/ttyUSB0-setup.service` | Oneshot systemd service that runs `stty` at boot |
+| [`postinst`](meta-dgam-pr/recipes-core/serial-config/files/postinst) | (dpkg hook) | Runs `systemctl enable ttyUSB0-setup.service` after install |
+
+The service is gated on `dev-ttyUSB0.device` (the systemd device unit for the port) and is wanted by both `multi-user.target` and `dev-ttyUSB0.device`:
+
+```ini
+[Unit]
+After=dev-ttyUSB0.device
+Requires=dev-ttyUSB0.device
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/stty -F /dev/ttyUSB0 230400 cs8 -parenb -cstopb
+
+[Install]
+WantedBy=multi-user.target
+WantedBy=dev-ttyUSB0.device
+```
+
+### Serial Parameters
+
+| Parameter | Value | Meaning |
+|-----------|-------|---------|
+| Baud rate | `230400` | 230400 bits/second |
+| Data bits | `cs8` | 8 data bits |
+| Parity | `-parenb` | No parity |
+| Stop bits | `-cstopb` | 1 stop bit |
+
+### Verifying Serial Configuration on a Running Device
+
+```bash
+# Check current settings
+stty -F /dev/ttyUSB0 -a
+
+# Confirm the service ran successfully
+systemctl status ttyUSB0-setup.service
 ```
 
 ---

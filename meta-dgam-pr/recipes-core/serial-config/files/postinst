@@ -1,0 +1,7 @@
+#!/bin/sh
+
+# Enable the service so it runs at every boot.
+# systemctl may not be available during early image assembly, so guard against that.
+if command -v systemctl > /dev/null 2>&1; then
+    systemctl enable ttyUSB0-setup.service || true
+fi
