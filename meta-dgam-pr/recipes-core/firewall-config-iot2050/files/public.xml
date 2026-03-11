@@ -6,4 +6,11 @@
   <service name="ssh"/>
   <service name="mqtt"/>
   <service name="node-red"/>
+  <!-- Enable IP masquerading and forwarding so that CNI pod-network traffic
+       (kubesolo on the VPN-facing device) can be forwarded and NAT-ed correctly.
+       On the PLC-facing device these are harmless: PLC <-> eno2 communication is
+       static on both ends within the same 192.168.1.x/24 subnet and never
+       requires routing or NAT through the firewall zone. -->
+  <masquerade/>
+  <forward/>
 </zone>
