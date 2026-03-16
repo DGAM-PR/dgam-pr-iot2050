@@ -18,10 +18,12 @@ repos:
       meta-node-red: # REQUIRED for PLC facing IOT2050 Device
       # meta-sm: NOT REQUIRED as only RS232 on X30 port (ASCII Communication) is needed
 
-  # temp https://gitlab.com/cip-project/cip-core/isar-cip-core/-/commit/3cfd7f0c89155419551f6bf430033c5d1ddd80a7
+  # temp: patch until https://gitlab.com/cip-project/cip-core/isar-cip-core/-/commit/3cfd7f0c89155419551f6bf430033c5d1ddd80a7 is in master
   cip-core:
-    url: https://gitlab.com/cip-project/cip-core/isar-cip-core.git
-    commit: 3cfd7f0c89155419551f6bf430033c5d1ddd80a7
+    patches:
+      0001-gnu-efi-Drop-self-built-version-for-trixie:
+        repo: meta-dgam-pr
+        path: patches/cip-core/0001-gnu-efi-Drop-self-built-version-for-trixie.patch
 
   meta-dgam-pr:
     path: meta-dgam-pr
