@@ -11,7 +11,7 @@ SRC_URI = " \
     file://postinst \
 "
 
-DEBIAN_DEPENDS = "firewalld"
+DEBIAN_DEPENDS = "firewalld, nftables"
 
 do_install() {
     # Custom service definitions
