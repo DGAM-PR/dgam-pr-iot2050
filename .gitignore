@@ -5,3 +5,4 @@ isar/
 .config.yaml*
 .kas_shell_history
 meta/recipes-app/kubesolo/files/kubesolo-linux-arm64.zip
+notes.md
