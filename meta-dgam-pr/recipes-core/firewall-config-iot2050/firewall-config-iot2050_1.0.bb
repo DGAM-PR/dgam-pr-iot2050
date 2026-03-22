@@ -21,7 +21,13 @@ SRC_URI = " \
 # nftables backend is incompatible with the IOT2050 kernel ABI; use iptables instead.
 ###
 
-DEBIAN_DEPENDS = "firewalld, iptables"
+DEBIAN_DEPENDS = "firewalld"
+
+# /etc/firewalld/firewalld.conf is a conffile owned by the firewalld package.
+# Replaces: firewalld tells dpkg that this package intentionally supersedes
+# that file, resolving the file-ownership conflict without dpkg-divert.
+# No Breaks: needed — Replaces alone is sufficient for conffile takeover.
+DEBIAN_REPLACES = "firewalld"
 
 do_install() {
     # Custom service definitions
@@ -33,8 +39,9 @@ do_install() {
     install -d ${D}/etc/firewalld/zones
     install -m 0644 ${WORKDIR}/public.xml   ${D}/etc/firewalld/zones/public.xml
 
-    # Backend override — force iptables; IOT2050 kernel nftables ABI is too old
-    # for the libnftables version in Debian Bookworm (causes crash on cold boot).
+    # Override firewalld.conf to set IPv6_rpfilter=no (IOT2050 kernel missing
+    # FIB modules; strict RPF causes COMMAND_FAILED crash on cold boot).
+    # DEBIAN_REPLACES above allows us to own this conffile without a dpkg conflict.
     install -d ${D}/etc/firewalld
     install -m 0644 ${WORKDIR}/firewalld.conf ${D}/etc/firewalld/firewalld.conf
 }
