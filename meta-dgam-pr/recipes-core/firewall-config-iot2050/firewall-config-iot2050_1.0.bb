@@ -11,6 +11,15 @@ SRC_URI = " \
     file://firewalld.conf \
     file://postinst \
 "
+###
+# Root cause recap: firewalld's default nftables backend calls python-nftables via a 
+# JSON/netlink API on every cold start. The IOT2050 kernel's nftables subsystem ABI 
+# is older than the libnftables userspace library in Debian Bookworm, so every call 
+# fails with COMMAND_FAILED and firewalld crashes before it can load any zone. Setting 
+# FirewallBackend=iptables routes all firewalld operations through the stable xt_* 
+# kernel modules the IOT2050 kernel fully supports.
+# nftables backend is incompatible with the IOT2050 kernel ABI; use iptables instead.
+###
 
 DEBIAN_DEPENDS = "firewalld"
 
