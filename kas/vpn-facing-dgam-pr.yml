@@ -38,7 +38,11 @@ local_conf_header:
     IMAGE_INSTALL:append = " network-config kubesolo kubectl firewall-config-iot2050 serial-config"
     # Security hardening
     INITRAMFS_OVERLAY_MOUNT_OPTIONS = "defaults,nodev,nosuid"
-
+  package-lock: |
+    # 2026-03-23 17:13:35 UTC
+    # 18:13:35 in your local Amsterdam time, UTC+1
+    ISAR_APT_SNAPSHOT_TIMESTAMP = "1774284815"
+    ISAR_USE_APT_SNAPSHOT = "1"
 
 ## Must build in Node REd Container
 # node-red-node-serialport

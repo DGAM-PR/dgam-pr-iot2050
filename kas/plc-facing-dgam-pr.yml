@@ -39,3 +39,8 @@ local_conf_header:
     # Node-RED feature
     IOT2050_NODE_RED_SUPPORT = "1"
     IOT2050_META_NODE_RED_PACKAGES = "mraa node-red node-red-gpio node-red-contrib-opcua node-red-contrib-modbus node-red-contrib-s7 node-red-node-serialport"
+  package-lock: |
+    # 2026-03-23 17:13:35 UTC
+    # 18:13:35 in your local Amsterdam time, UTC+1
+    ISAR_APT_SNAPSHOT_TIMESTAMP = "1774284815"
+    ISAR_USE_APT_SNAPSHOT = "1"
