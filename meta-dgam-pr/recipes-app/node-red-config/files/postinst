@@ -1,7 +1,10 @@
 #!/bin/sh
 
+# Add root to the dialout group so that Node-RED (running as root) can access
+# serial devices such as /dev/ttyUSB0 for Modbus/S7/OPC-UA communication.
+usermod -a -G dialout root
+
 # Restart Node-RED so the new group membership takes effect.
-# (root is added to dialout by the serial-config postinst, which runs on both builds.)
 # Guard against environments where systemctl is not yet available
 # (e.g. during early image build / chroot install).
 if command -v systemctl > /dev/null 2>&1 && systemctl is-system-running --quiet 2>/dev/null; then

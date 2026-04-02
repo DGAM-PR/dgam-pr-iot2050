@@ -1,9 +1,5 @@
 #!/bin/sh
 
-# Add root to the dialout group so that processes running as root (e.g. Node-RED,
-# serial tools) can access serial devices such as /dev/ttyUSB0.
-usermod -a -G dialout root
-
 # Enable the service so it runs at every boot.
 # systemctl may not be available during early image assembly, so guard against that.
 if command -v systemctl > /dev/null 2>&1; then
