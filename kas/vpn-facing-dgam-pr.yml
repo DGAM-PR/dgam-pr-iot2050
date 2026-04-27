@@ -37,7 +37,7 @@ local_conf_header:
     # eno2 static IP: 192.168.1.3/24 (VPN-facing device)
     ENO2_PROFILE = "vpn"
     # Custom image packages
-    IMAGE_INSTALL:append = " network-config kubesolo kubectl firewall-config-iot2050 serial-config"
+    IMAGE_INSTALL:append = " network-config kubesolo kubectl firewall-config-iot2050 serial-config device-identity"
     # Security hardening
     INITRAMFS_OVERLAY_MOUNT_OPTIONS = "defaults,nodev,nosuid"
 

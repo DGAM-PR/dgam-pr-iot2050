@@ -10,6 +10,7 @@ This project extends the Siemens IOT2050 platform with custom functionality for 
 - [Deployment](#deployment)
 - [SWUpdate Usage](#swupdate-usage)
 - [KubeSolo Configuration](#kubesolo-configuration)
+- [Device Identity Configuration](#device-identity-configuration)
 - [Node-RED Serial Port Access](#node-red-serial-port-access-devttyusb0)
 - [Network Configuration](#network-configuration)
 - [Firewall Configuration](#firewall-configuration)
@@ -35,6 +36,7 @@ This project extends the Siemens IOT2050 platform with custom functionality for 
 │   │   ├── kubectl/            # Kubernetes CLI tool
 │   │   └── kubesolo/           # Single-node Kubernetes setup
 │   └── recipes-core/
+│       ├── device-identity/          # Host-wide device identity env vars
 │       ├── firewall-config-iot2050/  # Firewalld zone and service definitions
 │       ├── network-config/           # NetworkManager eno2 static IP profile
 │       └── serial-config/            # /dev/ttyUSB0 baud rate (230400 8N1)
@@ -544,6 +546,55 @@ systemctl reset-failed kubesolo
 # (variables are scoped to the service process and not visible in your shell)
 cat /proc/$(systemctl show kubesolo.service --property=MainPID --value)/environ | tr '\0' '\n' | grep KUBESOLO
 ```
+
+---
+
+## Device Identity Configuration
+
+Both device images include the `device-identity` recipe, which installs a host-wide environment file at `/var/lib/device-identity/env`. This file holds device-specific identity variables used by services such as Alloy and is available in all login shells.
+
+### Configuration File
+
+- **Path**: `/var/lib/device-identity/env`
+- **Recipe**: [`meta-dgam-pr/recipes-core/device-identity/device-identity_1.0.bb`](meta-dgam-pr/recipes-core/device-identity/device-identity_1.0.bb)
+
+The file ships with placeholders and must be filled in before the device goes into the field:
+
+```bash
+LOCATION=PLACEHOLDER_LOCATION        # Physical location (e.g. "amsterdam-north")
+GROUP=PLACEHOLDER_GROUP              # Logical group (e.g. "zone-a")
+EDGEDEVICENAME=PLACEHOLDER_EDGEDEVICENAME  # Name as registered in the management platform
+```
+
+You can add any additional `KEY=VALUE` lines — they are picked up automatically.
+
+### Per-Device Setup
+
+```bash
+# Edit the identity file
+vi /var/lib/device-identity/env
+
+# Set real values, e.g.:
+LOCATION=amsterdam-north
+GROUP=zone-a
+EDGEDEVICENAME=iot-gateway-01
+
+# Restart any dependent services to apply
+systemctl restart alloy   # or whichever service uses these vars
+```
+
+### How Variables Are Exposed
+
+| Consumer | Mechanism |
+|---|---|
+| Login shells | `/etc/profile.d/device-env.sh` sources the file with `set -a` — all vars exported automatically |
+| systemd services | Add `EnvironmentFile=/var/lib/device-identity/env` to the service unit |
+
+> ⚠️ systemd reads `EnvironmentFile=` once at service start. Restart the service after editing the file to pick up changes.
+
+### Upgrade Safety
+
+The `postinst` script only writes the file if it does not already exist — package upgrades via SWUpdate will never overwrite values you have set.
 
 ---
 
