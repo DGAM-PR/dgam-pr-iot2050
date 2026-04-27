@@ -1,0 +1,31 @@
+#!/bin/sh
+
+# Create the device-identity config directory
+mkdir -p /var/lib/device-identity
+
+# Install the default env file only if it does not already exist.
+# This guard ensures that re-flashing or upgrading the package does NOT
+# overwrite values that have already been set by the operator.
+if [ ! -f /var/lib/device-identity/env ]; then
+    cp /usr/share/device-identity/device-identity.env /var/lib/device-identity/env
+    chmod 644 /var/lib/device-identity/env
+fi
+
+echo ""
+echo "================================================================"
+echo "Device identity configuration installed."
+echo ""
+echo "Before deploying this device to the field, edit:"
+echo "  /var/lib/device-identity/env"
+echo ""
+echo "Set at minimum:"
+echo "  LOCATION        - physical location of the device"
+echo "  GROUP           - logical group this device belongs to"
+echo "  EDGEDEVICENAME  - name as registered in the management platform"
+echo ""
+echo "Variables are available in all login shells automatically."
+echo "Systemd services must declare:"
+echo "  EnvironmentFile=/var/lib/device-identity/env"
+echo "and be restarted to pick up any changes."
+echo "================================================================"
+echo ""
