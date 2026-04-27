@@ -7,6 +7,9 @@ usermod -a -G dialout root
 # Restart Node-RED so the new group membership takes effect.
 # Guard against environments where systemctl is not yet available
 # (e.g. during early image build / chroot install).
-if command -v systemctl > /dev/null 2>&1 && systemctl is-system-running --quiet 2>/dev/null; then
-    systemctl restart nodered || true
+if command -v systemctl > /dev/null 2>&1; then
+    systemctl enable node-red || true
+    if systemctl is-system-running --quiet 2>/dev/null; then
+        systemctl restart node-red || true
+    fi
 fi
