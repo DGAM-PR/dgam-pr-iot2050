@@ -11,7 +11,7 @@ DPKG_ARCH = "arm64"
 
 # ARM64 release for IOT2050
 # SRC_URI = "file://kubesolo-linux-arm64.zip;sha256sum=49718ed574234b64c4f3f866a94755d30a715578067dde6a736ad3eeae2e8110" 
-SRC_URI = "https://github.com/portainer/kubesolo/releases/download/v${PV}/kubesolo-v${PV}-linux-arm64.tar.gz;sha256=ce1e28c72c5e1a6014816866819070d627fee5e1e6535c402d1bd72bc0ca7c12 \
+SRC_URI = "https://github.com/portainer/kubesolo/releases/download/v${PV}/kubesolo-v${PV}-linux-arm64.tar.gz;sha256sum=ce1e28c72c5e1a6014816866819070d627fee5e1e6535c402d1bd72bc0ca7c12 \
            file://kubesolo.service \
            file://kubesolo-start.sh \
            file://postinst \
