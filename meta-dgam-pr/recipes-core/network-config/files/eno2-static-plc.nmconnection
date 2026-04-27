@@ -1,0 +1,14 @@
+[connection]
+id=eno2-static
+type=ethernet
+interface-name=eno2
+autoconnect=true
+
+[ipv4]
+method=manual
+addresses=192.168.1.4/24
+gateway=192.168.1.1
+dns=1.1.1.1;1.0.0.1;
+
+[ipv6]
+method=disabled

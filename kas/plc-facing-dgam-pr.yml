@@ -34,6 +34,8 @@ local_conf_header:
     IOT2050_DOCKER_SUPPORT = "0"
     # Extra debug/tooling packages
     IOT2050_DEBIAN_DEBUG_PACKAGES:append = " mosquitto mosquitto-clients"
+    # eno2 static IP: 192.168.1.4/24 (PLC-facing device)
+    ENO2_PROFILE = "plc"
     # Custom image packages
     IMAGE_INSTALL:append = " network-config mosquitto-config firewall-config-iot2050 node-red-config serial-config"
     # Node-RED feature

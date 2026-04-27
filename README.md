@@ -556,13 +556,39 @@ Both device configurations use **NetworkManager** to manage network interfaces. 
 | Interface | Config | Description |
 |-----------|--------|-------------|
 | `eno1` | Static `192.168.200.1/24` | Direct laptop connection for troubleshooting |
-| `eno2` | Static `192.168.1.3/24` | PLC / VPN-facing network (4G modem gateway) |
+| `eno2` | Static `192.168.1.4/24` (PLC-facing) / `192.168.1.3/24` (VPN-facing) | PLC / VPN-facing network (4G modem gateway) |
 
-`eno1` uses its default NM-managed profile (pre-configured in the base image). `eno2` gets a static IP via a custom NM connection profile deployed by the `network-config` recipe.
+`eno1` uses its default NM-managed profile (pre-configured in the base image). `eno2` gets a static IP via a custom NM connection profile deployed by the `network-config` recipe. The IP differs per device role, selected at build time via the `ENO2_PROFILE` BitBake variable.
 
 ### eno2 — Static IP (NetworkManager profile)
 
-The NM connection profile is deployed to **`/etc/NetworkManager/system-connections/eno2-static.nmconnection`**:
+The NM connection profile is deployed to **`/etc/NetworkManager/system-connections/eno2-static.nmconnection`**. The IP address is selected at build time based on the device role:
+
+| Device | `ENO2_PROFILE` | `eno2` IP |
+|--------|---------------|-----------|
+| PLC-facing | `plc` | `192.168.1.4/24` |
+| VPN-facing | `vpn` | `192.168.1.3/24` |
+
+**PLC-facing** (`eno2-static-plc.nmconnection`):
+
+```ini
+[connection]
+id=eno2-static
+type=ethernet
+interface-name=eno2
+autoconnect=true
+
+[ipv4]
+method=manual
+addresses=192.168.1.4/24
+gateway=192.168.1.1
+dns=1.1.1.1;1.0.0.1;
+
+[ipv6]
+method=disabled
+```
+
+**VPN-facing** (`eno2-static-vpn.nmconnection`):
 
 ```ini
 [connection]
@@ -581,19 +607,21 @@ dns=1.1.1.1;1.0.0.1;
 method=disabled
 ```
 
-| Parameter | Value | Description |
-|-----------|-------|-------------|
-| IP Address | `192.168.1.3/24` | Static IP with /24 subnet |
-| Gateway | `192.168.1.1` | 4G modem / default gateway |
-| DNS | `1.1.1.1`, `1.0.0.1` | Cloudflare DNS (managed by NM) |
-| DHCP | Disabled | Static configuration only |
+| Parameter | PLC-facing value | VPN-facing value | Description |
+|-----------|-----------------|-----------------|-------------|
+| IP Address | `192.168.1.4/24` | `192.168.1.3/24` | Static IP with /24 subnet |
+| Gateway | `192.168.1.1` | `192.168.1.1` | 4G modem / default gateway |
+| DNS | `1.1.1.1`, `1.0.0.1` | `1.1.1.1`, `1.0.0.1` | Cloudflare DNS (managed by NM) |
+| DHCP | Disabled | Disabled | Static configuration only |
 
 > ⚠️ NM requires **`600` permissions** on connection files. Files with looser permissions are silently ignored.
 
 ### Implementation
 
 - **Recipe**: [`meta-dgam-pr/recipes-core/network-config/network-config_1.0.bb`](meta-dgam-pr/recipes-core/network-config/network-config_1.0.bb)
-- **eno2 profile**: [`meta-dgam-pr/recipes-core/network-config/files/eno2-static.nmconnection`](meta-dgam-pr/recipes-core/network-config/files/eno2-static.nmconnection) → `/etc/NetworkManager/system-connections/eno2-static.nmconnection`
+- **PLC-facing profile**: [`meta-dgam-pr/recipes-core/network-config/files/eno2-static-plc.nmconnection`](meta-dgam-pr/recipes-core/network-config/files/eno2-static-plc.nmconnection)
+- **VPN-facing profile**: [`meta-dgam-pr/recipes-core/network-config/files/eno2-static-vpn.nmconnection`](meta-dgam-pr/recipes-core/network-config/files/eno2-static-vpn.nmconnection)
+- Both are deployed as → `/etc/NetworkManager/system-connections/eno2-static.nmconnection`
 
 ### Verifying Network Configuration
 
@@ -601,7 +629,7 @@ After deployment:
 
 ```bash
 # Check eno2 has the static IP
-ip addr show eno2   # should show 192.168.1.3/24
+ip addr show eno2   # PLC-facing: 192.168.1.4/24 | VPN-facing: 192.168.1.3/24
 
 # Check NM connection status
 nmcli connection show
