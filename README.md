@@ -564,9 +564,21 @@ The file ships with placeholders and must be filled in before the device goes in
 LOCATION=PLACEHOLDER_LOCATION        # Physical location (e.g. "amsterdam-north")
 GROUP=PLACEHOLDER_GROUP              # Logical group (e.g. "zone-a")
 EDGEDEVICENAME=PLACEHOLDER_EDGEDEVICENAME  # Name as registered in the management platform
+VPN_OR_PLC_FACING=<pre-filled>       # Set automatically at build time (see below)
 ```
 
 You can add any additional `KEY=VALUE` lines — they are picked up automatically.
+
+### Build-Time Pre-fill: `VPN_OR_PLC_FACING`
+
+`VPN_OR_PLC_FACING` is the one variable that does **not** need to be set manually — it is pre-filled at image build time based on the kas configuration used:
+
+| kas config | `ENO2_PROFILE` | `VPN_OR_PLC_FACING` value |
+|---|---|---|
+| [`kas/plc-facing-dgam-pr.yml`](kas/plc-facing-dgam-pr.yml) | `plc` | `PLC-FACING` |
+| [`kas/vpn-facing-dgam-pr.yml`](kas/vpn-facing-dgam-pr.yml) | `vpn` | `VPN-FACING` |
+
+The recipe ([`device-identity_1.0.bb`](meta-dgam-pr/recipes-core/device-identity/device-identity_1.0.bb)) ships two template files — `device-identity.env.plc` and `device-identity.env.vpn` — and selects the correct one in `do_install` based on `${ENO2_PROFILE}`. The generic `device-identity.env` (with `PLACEHOLDER_VPN_OR_PLC_FACING`) is kept as a fallback for unknown profiles.
 
 ### Per-Device Setup
 

@@ -10,17 +10,25 @@ inherit dpkg-raw
 
 SRC_URI = " \
     file://device-identity.env \
+    file://device-identity.env.plc \
+    file://device-identity.env.vpn \
     file://device-env.sh \
     file://postinst \
 "
 
 do_install() {
-    # Ship the template to /usr/share so postinst can copy it to /var/lib.
-    # /usr/share is part of the read-only OS image; /var/lib is the writable
-    # data partition where the operator edits the live config.
     install -d ${D}/usr/share/device-identity
-    install -m 0644 ${WORKDIR}/device-identity.env \
-        ${D}/usr/share/device-identity/device-identity.env
+
+    # Select the env template that matches the build profile (ENO2_PROFILE is
+    # set to "plc" or "vpn" by the kas configuration).  Fall back to the
+    # generic placeholder file when the profile is unknown.
+    if [ -f ${WORKDIR}/device-identity.env.${ENO2_PROFILE} ]; then
+        install -m 0644 ${WORKDIR}/device-identity.env.${ENO2_PROFILE} \
+            ${D}/usr/share/device-identity/device-identity.env
+    else
+        install -m 0644 ${WORKDIR}/device-identity.env \
+            ${D}/usr/share/device-identity/device-identity.env
+    fi
 
     # profile.d shim — sources the live env file for every login shell.
     install -d ${D}/etc/profile.d
