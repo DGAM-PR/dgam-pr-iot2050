@@ -10,10 +10,10 @@ Type=simple
 # Set kubeconfig location
 Environment="KUBECONFIG=/var/lib/kubesolo/pki/admin/admin.kubeconfig"
 
-# Wrapper script handles config polling and then execs kubesolo
+# Wrapper script handles config polling, connectivity checks, and runs kubesolo in a retry loop
 ExecStart=/usr/bin/kubesolo-start.sh
 
-# Only restart if kubesolo itself crashes after a successful start
+# Restart the wrapper only if it exits unexpectedly (the wrapper itself handles kubesolo retries)
 Restart=on-failure
 RestartSec=60s
 
