@@ -486,8 +486,8 @@ The kubesolo service is automatically installed but requires per-device configur
 
 The service uses a wrapper script (`kubesolo-start.sh`) as its `ExecStart`. This script:
 1. Polls `/var/lib/kubesolo/config` every **60 seconds** until both required variables are set
-2. Applies a default of `false` for `KUBESOLO_LOCAL_STORAGE` if not explicitly configured
-3. Uses `exec /usr/bin/kubesolo` to replace itself with the kubesolo process — ensuring systemd tracks the correct PID and signals are delivered properly
+2. Exports `KUBESOLO_LOCAL_STORAGE`, defaulting to `false` if not set — the binary reads this env var directly (upstream default is `true`, so the explicit default is a meaningful override)
+3. Waits for internet connectivity before launching kubesolo, then retries every 5 minutes if kubesolo exits for any reason
 
 #### Automatic Retry Behavior
 
@@ -503,7 +503,10 @@ If kubesolo itself crashes after a successful start:
 |---|---|---|---|
 | `KUBESOLO_PORTAINER_EDGE_ID` | ✅ Yes | — | Portainer Edge ID for this device |
 | `KUBESOLO_PORTAINER_EDGE_KEY` | ✅ Yes | — | Portainer Edge Key (base64) |
-| `KUBESOLO_LOCAL_STORAGE` | No | `false` | Enable (`true`) or disable (`false`) local storage |
+| `KUBESOLO_LOCAL_STORAGE` | No | `false` | Enable local storage (upstream default is `true`; we override to `false`) |
+| `KUBESOLO_DB_WAL_REPAIR` | No | `false` | Run SQLite WAL integrity check and repair on startup — useful after power-loss |
+| `KUBESOLO_DISABLE_IPV6` | No | `false` | Disable IPv6 for CoreDNS reverse zones and kubelet node address registration |
+| `KUBESOLO_STARTUP_TIMEOUT` | No | `600` | Seconds to wait per component health check on startup; increase on slow SD cards |
 
 #### Per-Device Setup
 
@@ -517,8 +520,17 @@ vi /var/lib/kubesolo/config
 KUBESOLO_PORTAINER_EDGE_ID=device-001
 KUBESOLO_PORTAINER_EDGE_KEY=YmFzZTY0ZW5jb2RlZGtleQ==
 
-# Optional: enable local storage (default is false)
+# Optional: enable local storage (upstream default is true, we default to false)
 # KUBESOLO_LOCAL_STORAGE=true
+
+# Optional: run SQLite WAL integrity check and repair on startup (default: false)
+# KUBESOLO_DB_WAL_REPAIR=true
+
+# Optional: disable IPv6 support for CoreDNS and kubelet (default: false)
+# KUBESOLO_DISABLE_IPV6=true
+
+# Optional: startup timeout in seconds per component health check (default: 600)
+# KUBESOLO_STARTUP_TIMEOUT=600
 
 # Start the service
 systemctl start kubesolo

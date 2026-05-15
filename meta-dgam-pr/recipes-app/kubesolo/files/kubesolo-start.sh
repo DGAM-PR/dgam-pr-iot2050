@@ -22,6 +22,9 @@ while true; do
     unset KUBESOLO_PORTAINER_EDGE_ID
     unset KUBESOLO_PORTAINER_EDGE_KEY
     unset KUBESOLO_LOCAL_STORAGE
+    unset KUBESOLO_DB_WAL_REPAIR
+    unset KUBESOLO_DISABLE_IPV6
+    unset KUBESOLO_STARTUP_TIMEOUT
     source "$ENV_FILE"
 
     if [ -z "$KUBESOLO_PORTAINER_EDGE_ID" ]; then
@@ -39,18 +42,15 @@ while true; do
     # Export all variables so they are inherited by the kubesolo process
     export KUBESOLO_PORTAINER_EDGE_ID
     export KUBESOLO_PORTAINER_EDGE_KEY
-    # Default KUBESOLO_LOCAL_STORAGE to false if not explicitly set in config
-    # The binary reads this env var directly and supports --[no-]local-storage flags
+    # The following vars match the upstream defaults from flags.go; set them here
+    # so the effective value is always visible in logs and the binary never relies
+    # on its own compiled-in default silently.
     export KUBESOLO_LOCAL_STORAGE="${KUBESOLO_LOCAL_STORAGE:-false}"
+    export KUBESOLO_DB_WAL_REPAIR="${KUBESOLO_DB_WAL_REPAIR:-false}"
+    export KUBESOLO_DISABLE_IPV6="${KUBESOLO_DISABLE_IPV6:-false}"
+    export KUBESOLO_STARTUP_TIMEOUT="${KUBESOLO_STARTUP_TIMEOUT:-600}"
 
-    # Translate KUBESOLO_LOCAL_STORAGE env var to the correct CLI flag
-    if [ "$KUBESOLO_LOCAL_STORAGE" = "true" ]; then
-        LOCAL_STORAGE_FLAG="--local-storage"
-    else
-        LOCAL_STORAGE_FLAG="--no-local-storage"
-    fi
-
-    echo "Configuration validated successfully | edge-id: $KUBESOLO_PORTAINER_EDGE_ID | key: ${KUBESOLO_PORTAINER_EDGE_KEY:0:5}... | local-storage: $LOCAL_STORAGE_FLAG"
+    echo "Configuration validated successfully | edge-id: $KUBESOLO_PORTAINER_EDGE_ID | key: ${KUBESOLO_PORTAINER_EDGE_KEY:0:5}... | local-storage: $KUBESOLO_LOCAL_STORAGE | db-wal-repair: $KUBESOLO_DB_WAL_REPAIR | disable-ipv6: $KUBESOLO_DISABLE_IPV6 | startup-timeout: $KUBESOLO_STARTUP_TIMEOUT"
     break
 done
 
@@ -68,8 +68,7 @@ while true; do
 
     /usr/bin/kubesolo \
         --portainer-edge-id "$KUBESOLO_PORTAINER_EDGE_ID" \
-        --portainer-edge-key "$KUBESOLO_PORTAINER_EDGE_KEY" \
-        "$LOCAL_STORAGE_FLAG"
+        --portainer-edge-key "$KUBESOLO_PORTAINER_EDGE_KEY"
 
     EXIT_CODE=$?
     echo "kubesolo exited with code $EXIT_CODE, retrying in ${KUBESOLO_RETRY_SEC}s..."
