@@ -7,6 +7,7 @@ This project extends the Siemens IOT2050 platform with custom functionality for 
 - [Project Overview](#project-overview)
 - [Architecture](#architecture)
 - [Building](#building)
+  - [Pre-Build: EIO Binaries (IOT2050 Advanced SM)](#pre-build-eio-binaries-iot2050-advanced-sm)
 - [Deployment](#deployment)
 - [SWUpdate Usage](#swupdate-usage)
 - [KubeSolo Configuration](#kubesolo-configuration)
@@ -201,6 +202,38 @@ This project uses **ISAR** (Integration System for Automated Root filesystem gen
 ---
 
 ## Building
+
+### Pre-Build: EIO Binaries (IOT2050 Advanced SM)
+
+> ⚠️ **Required before building the VPN-facing image if you are targeting an IOT2050 Advanced SM.**
+> Skip this section if you only use the standard IOT2050 Advanced.
+
+The VPN-facing image includes support for the **IOT2050 Advanced SM** variant (AM6548 SoC). This requires proprietary EIO firmware & binaries from Siemens that **cannot be distributed in this repository** and must be downloaded manually before building.
+
+#### Why the binaries live in `meta-dgam-pr`
+
+`meta-iot2050` is a kas-managed checkout that is wiped and re-cloned on every fresh build environment. Storing the binaries in [`meta-dgam-pr/recipes-app/iot2050-eiofsd/files/bin/`](meta-dgam-pr/recipes-app/iot2050-eiofsd/files/bin/) (your own persistent layer) means you only need to download them **once per build machine**. A [`iot2050-eiofsd_%.bbappend`](meta-dgam-pr/recipes-app/iot2050-eiofsd/iot2050-eiofsd_%.bbappend) redirects BitBake to find the binaries here instead of inside `meta-sm`.
+
+#### Steps
+
+1. Download the **EIO firmware & binaries** package from [Siemens Industry Online Support (SIOS)](https://support.industry.siemens.com/cs/document/109741799/).
+
+2. Extract the contents into:
+   ```
+   meta-dgam-pr/recipes-app/iot2050-eiofsd/files/bin/
+   ```
+
+3. Verify the directory is populated before building:
+   ```bash
+   ls meta-dgam-pr/recipes-app/iot2050-eiofsd/files/bin/
+   # Should list the EIO binary files — not just .gitkeep
+   ```
+
+4. Then proceed with the normal build command (see [Quick Start](#quick-start) below).
+
+> ℹ️ The `files/bin/` directory is excluded from git via a local `.gitignore`. Only the `.gitkeep` placeholder is tracked. See [`meta-dgam-pr/recipes-app/iot2050-eiofsd/README.md`](meta-dgam-pr/recipes-app/iot2050-eiofsd/README.md) for full details.
+
+---
 
 ### Quick Start
 

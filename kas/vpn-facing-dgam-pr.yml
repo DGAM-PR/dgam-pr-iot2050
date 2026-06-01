@@ -16,7 +16,7 @@ repos:
       meta:
       meta-example: # REQUIRED for iot2050-image-swu-example
       # meta-node-red: NOT REQUIRED for PLC facing IOT2050 Device
-      # meta-sm: NOT REQUIRED as only RS232 on X30 port (ASCII Communication) is needed
+      meta-sm: # REQUIRED for IOT2050 Advanced SM (AM6548 DTB + EIO subsystem)
 
   meta-dgam-pr:
     path: meta-dgam-pr
