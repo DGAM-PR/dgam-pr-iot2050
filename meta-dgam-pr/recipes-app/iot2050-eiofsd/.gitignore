@@ -1,0 +1,4 @@
+# The EIO binaries are proprietary Siemens software downloaded from SIOS.
+# They must never be committed to git.
+files/bin/*
+!files/bin/.gitkeep
