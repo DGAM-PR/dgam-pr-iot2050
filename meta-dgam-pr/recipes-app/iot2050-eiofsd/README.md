@@ -5,6 +5,17 @@ binaries that **cannot be distributed in this repository**. You must download
 them manually from Siemens Industry Online Support (SIOS) before building the
 VPN-facing image for the **IOT2050 Advanced SM** variant.
 
+## EIO controller firmware update
+If the STAT LED of your device remains orange and you receive the following brodcast message an EIO controller firmware update is necessary.
+
+![alt text](image.png)
+
+Action
+1.	Open a valid serial connection and log in as root.
+2.	Use the command iot2050-eio fwu controller to perform an eio firmware update.
+
+https://github.com/SIMATICmeetsLinux/IOT2050-Setting-Up-Example-Image
+
 ## Why this directory exists
 
 `meta-iot2050` is a kas-managed checkout and is wiped on every fresh build
