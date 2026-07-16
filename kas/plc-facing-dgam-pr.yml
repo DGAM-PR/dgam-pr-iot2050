@@ -30,7 +30,7 @@ local_conf_header:
     USER_root[flags] ??= "clear-text-password force-passwd-change"
   dgam_customization: |
     # Strip unwanted packages
-    IMAGE_INSTALL:remove = "tcf-agent"
+    IMAGE_INSTALL:remove = "tcf-agent iot2050-firewall-default"
     IOT2050_DOCKER_SUPPORT = "0"
     # Extra debug/tooling packages
     IOT2050_DEBIAN_DEBUG_PACKAGES:append = " mosquitto mosquitto-clients"
