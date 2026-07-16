@@ -12,6 +12,7 @@ repos:
     url: https://github.com/siemens/meta-iot2050
     path: meta-iot2050
     branch: master
+    commit: 2d304303950933d2480f060c4ae19003c2b71117
     layers:
       meta:
       meta-example: # REQUIRED for iot2050-image-swu-example
@@ -30,7 +31,7 @@ local_conf_header:
     USER_root[flags] ??= "clear-text-password force-passwd-change"
   dgam_customization: |
     # Strip unwanted packages
-    IMAGE_INSTALL:remove = "tcf-agent iot2050-firewall-default"
+    IMAGE_INSTALL:remove = "tcf-agent"
     IOT2050_DOCKER_SUPPORT = "0"
     # Extra debug/tooling packages
     IOT2050_DEBIAN_DEBUG_PACKAGES:append = " mosquitto mosquitto-clients"

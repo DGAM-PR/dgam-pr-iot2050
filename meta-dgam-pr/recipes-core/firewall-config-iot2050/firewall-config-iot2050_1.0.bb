@@ -27,12 +27,7 @@ DEBIAN_DEPENDS = "firewalld, nftables"
 # Replaces: firewalld tells dpkg that this package intentionally supersedes
 # that file, resolving the file-ownership conflict without dpkg-divert.
 # No Breaks: needed — Replaces alone is sufficient for conffile takeover.
-# Replaces tells dpkg your package takes ownership of files from 
-#  iot2050-firewall-default; Conflicts prevents both packages from being 
-#  co-installed, which is the correct intent since your package is a complete
-#  replacement for the upstream firewall defaults.
-DEBIAN_REPLACES = "firewalld, iot2050-firewall-default"
-DEBIAN_CONFLICTS = "iot2050-firewall-default"
+DEBIAN_REPLACES = "firewalld"
 
 do_install() {
     # Custom service definitions
