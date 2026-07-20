@@ -682,13 +682,13 @@ Only the PLC-facing image installs `dnsmasq-config`. Dnsmasq keeps `eno1` at its
 | DNS service | Disabled |
 | Advertised gateway/DNS | None (isolated PLC link) |
 
-Dnsmasq uses dynamic interface binding, so it can run while the cable is disconnected and begins answering automatically when a DHCP client is connected. It explicitly binds to `eno1` and excludes `eno2`; firewalld likewise accepts DHCP requests only when they arrive on `eno1`. The VPN-facing image does not install this package.
+Dnsmasq uses dynamic interface binding, so it can run while the cable is disconnected and begins answering automatically when a DHCP client is connected. It explicitly binds to `eno1` and excludes `eno2`. The PLC-facing public firewalld profile permits UDP port 67 so address-less clients can reach dnsmasq; because dnsmasq listens only on `eno1`, `eno2` does not provide DHCP. The VPN-facing image neither installs dnsmasq nor opens this port.
 
 Implementation files:
 
 - Recipe: [`meta-dgam-pr/recipes-core/dnsmasq-config/dnsmasq-config_1.0.bb`](meta-dgam-pr/recipes-core/dnsmasq-config/dnsmasq-config_1.0.bb)
 - Dnsmasq configuration: [`meta-dgam-pr/recipes-core/dnsmasq-config/files/plc-facing.conf`](meta-dgam-pr/recipes-core/dnsmasq-config/files/plc-facing.conf)
-- Interface-restricted firewall rule: [`meta-dgam-pr/recipes-core/dnsmasq-config/files/direct.xml`](meta-dgam-pr/recipes-core/dnsmasq-config/files/direct.xml)
+- PLC-facing firewall profile: [`meta-dgam-pr/recipes-core/firewall-config-iot2050/files/public-plc.xml`](meta-dgam-pr/recipes-core/firewall-config-iot2050/files/public-plc.xml)
 
 To verify on a PLC-facing device:
 

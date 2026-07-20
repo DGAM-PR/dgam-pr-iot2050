@@ -6,22 +6,17 @@ inherit dpkg-raw
 
 SRC_URI = " \
     file://plc-facing.conf \
-    file://direct.xml \
     file://postinst \
 "
 
-DEBIAN_DEPENDS = "dnsmasq, firewalld"
+DEBIAN_DEPENDS = "dnsmasq, firewall-config-iot2050"
 
 do_install() {
     install -d ${D}/etc/dnsmasq.d
     install -m 0644 ${WORKDIR}/plc-facing.conf \
         ${D}/etc/dnsmasq.d/plc-facing.conf
-
-    install -d ${D}/etc/firewalld
-    install -m 0644 ${WORKDIR}/direct.xml ${D}/etc/firewalld/direct.xml
 }
 
 FILES:${PN} = " \
     /etc/dnsmasq.d/plc-facing.conf \
-    /etc/firewalld/direct.xml \
 "
