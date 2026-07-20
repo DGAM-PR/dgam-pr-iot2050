@@ -30,6 +30,9 @@ local_conf_header:
     USER_root[password] ??= "root"
     USER_root[flags] ??= "clear-text-password force-passwd-change"
   dgam_customization: |
+    # The EIO recipe exists only when the VPN-facing meta-sm layer is enabled.
+    # Mask its persistent local bbappend in this non-SM PLC-facing build.
+    BBMASK += "meta-dgam-pr/recipes-app/iot2050-eiofsd/"
     # Strip unwanted packages
     IMAGE_INSTALL:remove = "tcf-agent"
     IOT2050_DOCKER_SUPPORT = "0"
