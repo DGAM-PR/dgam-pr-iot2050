@@ -668,6 +668,37 @@ Both device configurations use **NetworkManager** to manage network interfaces. 
 
 `eno1` uses its default NM-managed profile (pre-configured in the base image). `eno2` gets a static IP via a custom NM connection profile deployed by the `network-config` recipe. The IP differs per device role, selected at build time via the `ENO2_PROFILE` BitBake variable.
 
+### eno1 — PLC-facing DHCP server
+
+Only the PLC-facing image installs `dnsmasq-config`. Dnsmasq keeps `eno1` at its existing static `192.168.200.1/24` address and provides DHCP on that interface only:
+
+| Setting | Value |
+|---------|-------|
+| Interface | `eno1` (bottom X1 P1 port) |
+| Server address | `192.168.200.1/24` |
+| Lease pool | `192.168.200.5`–`192.168.200.254` |
+| Reserved addresses | `192.168.200.2`–`192.168.200.4` |
+| Lease time | 12 hours |
+| DNS service | Disabled |
+| Advertised gateway/DNS | None (isolated PLC link) |
+
+Dnsmasq uses dynamic interface binding, so it can run while the cable is disconnected and begins answering automatically when a DHCP client is connected. It explicitly binds to `eno1` and excludes `eno2`; firewalld likewise accepts DHCP requests only when they arrive on `eno1`. The VPN-facing image does not install this package.
+
+Implementation files:
+
+- Recipe: [`meta-dgam-pr/recipes-core/dnsmasq-config/dnsmasq-config_1.0.bb`](meta-dgam-pr/recipes-core/dnsmasq-config/dnsmasq-config_1.0.bb)
+- Dnsmasq configuration: [`meta-dgam-pr/recipes-core/dnsmasq-config/files/plc-facing.conf`](meta-dgam-pr/recipes-core/dnsmasq-config/files/plc-facing.conf)
+- Interface-restricted firewall rule: [`meta-dgam-pr/recipes-core/dnsmasq-config/files/direct.xml`](meta-dgam-pr/recipes-core/dnsmasq-config/files/direct.xml)
+
+To verify on a PLC-facing device:
+
+```bash
+ip -4 addr show eno1
+systemctl status dnsmasq
+ss -ulnp | grep ':67 '
+cat /var/lib/misc/dnsmasq.leases
+```
+
 ### eno2 — Static IP (NetworkManager profile)
 
 The NM connection profile is deployed to **`/etc/NetworkManager/system-connections/eno2-static.nmconnection`**. The IP address is selected at build time based on the device role:

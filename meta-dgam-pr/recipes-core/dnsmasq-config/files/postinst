@@ -1,0 +1,13 @@
+#!/bin/sh
+
+# Enable dnsmasq for future boots. Service operations can fail harmlessly while
+# assembling the image in a chroot; the enabled unit will start on first boot.
+if command -v systemctl > /dev/null 2>&1; then
+    systemctl enable dnsmasq.service || true
+    systemctl restart dnsmasq.service || true
+fi
+
+# Load the eno1-only DHCP rule immediately when installing on a running target.
+if command -v firewall-cmd > /dev/null 2>&1 && firewall-cmd --state > /dev/null 2>&1; then
+    firewall-cmd --reload || true
+fi
