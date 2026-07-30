@@ -1,0 +1,87 @@
+name: Build IOT2050 Images
+
+on:
+  push:
+    branches:
+      - "stable/v01.06-locked"
+  workflow_dispatch:
+
+# Only one build at a time per branch — avoids two jobs racing on the same
+# Docker volumes / disk space. Change to "branch" if you want per-branch
+# parallelism once you have multiple long-lived branches building.
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: "Build ${{ matrix.target }}"
+    runs-on: [self-hosted, linux, arm64]
+
+    strategy:
+      matrix:
+        target: [plc-facing, vpn-facing]
+      # Let the other target finish even if one fails
+      fail-fast: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # kas checks out sub-repos itself, but we need the full history
+          # for the branch name used in the artifact path.
+          fetch-depth: 0
+
+      # ------------------------------------------------------------------ #
+      # EIO binaries: pre-placed once on /data/eio-binaries/ by the admin. #
+      # Copy (not symlink) so Docker can see them inside the build context. #
+      # ------------------------------------------------------------------ #
+      - name: Copy EIO binaries into workspace (vpn-facing only)
+        if: matrix.target == 'vpn-facing'
+        run: |
+          set -euo pipefail
+          SRC=/data/eio-binaries
+          DST=meta-dgam-pr/recipes-app/iot2050-eiofsd/files/bin
+
+          if [ ! -d "$SRC" ] || [ -z "$(ls -A "$SRC" 2>/dev/null)" ]; then
+            echo "::error::EIO binaries not found in $SRC — see docs/ci-runner-setup.md"
+            exit 1
+          fi
+          cp -r "$SRC"/. "$DST/"
+          echo "EIO binaries copied:"
+          ls -lh "$DST/"
+
+      # ------------------------------------------------------------------ #
+      # Main build — kas-container wraps Docker + ISAR.                     #
+      # Named Docker volumes persist the BitBake caches between runs;       #
+      # they are NOT pruned by the cleanup step.                            #
+      # ------------------------------------------------------------------ #
+      - name: Build (${{ matrix.target }})
+        id: build
+        run: |
+          set -euo pipefail
+          ./kas-container \
+            --isar \
+            --volume isar-sstate-cache:/var/cache/isar/sstate-cache \
+            --volume isar-downloads:/var/cache/isar/downloads \
+            build kas/${{ matrix.target }}-dgam-pr.yml
+
+      # ------------------------------------------------------------------ #
+      # Artifact copy — only on success, writes to /data.                  #
+      # ------------------------------------------------------------------ #
+      - name: Copy artifacts to /data
+        if: steps.build.outcome == 'success'
+        env:
+          BRANCH: ${{ github.ref_name }}
+          RUN_NUMBER: ${{ github.run_number }}
+          TARGET: ${{ matrix.target }}
+          KEEP: "3"
+        run: bash scripts/ci-copy-artifacts.sh
+
+      # ------------------------------------------------------------------ #
+      # Cleanup — always runs, even on failure.                             #
+      # Wipes the workspace and dangling Docker state.                      #
+      # ------------------------------------------------------------------ #
+      - name: Cleanup workspace and Docker
+        if: always()
+        run: bash scripts/ci-cleanup.sh
