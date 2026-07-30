@@ -62,8 +62,7 @@ jobs:
           set -euo pipefail
           ./kas-container \
             --isar \
-            --volume isar-sstate-cache:/var/cache/isar/sstate-cache \
-            --volume isar-downloads:/var/cache/isar/downloads \
+            --runtime-args "-v isar-sstate-cache:/var/cache/isar/sstate-cache -v isar-downloads:/var/cache/isar/downloads" \
             build kas/${{ matrix.target }}-dgam-pr.yml
 
       # ------------------------------------------------------------------ #
