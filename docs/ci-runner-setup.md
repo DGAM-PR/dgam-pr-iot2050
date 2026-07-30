@@ -15,6 +15,7 @@ This document describes how to set up a GitHub Actions self-hosted runner on an 
 - [Artifact Retention Policy](#artifact-retention-policy)
 - [Disk Space Reference](#disk-space-reference)
 - [Adding Nightly / Scheduled Builds](#adding-nightly--scheduled-builds)
+- [Security: Self-Hosted Runner on a Public Repository](#security-self-hosted-runner-on-a-public-repository)
 - [Troubleshooting](#troubleshooting)
 
 ---
@@ -373,6 +374,50 @@ on:
 ```
 
 > Note: GitHub Actions scheduled triggers only run on the **default branch** by default. To run nightly builds on non-default branches, use a separate workflow file per branch or use `workflow_dispatch` with branch selection.
+
+---
+
+## Security: Self-Hosted Runner on a Public Repository
+
+GitHub shows a warning when you add a self-hosted runner to a public repository:
+
+> *"Using self-hosted runners in public repositories is not recommended. Forks of your public repository can potentially run dangerous code on your self-hosted runner by creating a pull request."*
+
+This warning is valid in general, but **does not apply to this repository's current setup**. Here is why.
+
+### What the risk actually is
+
+The concern is that a fork contributor opens a PR that modifies the workflow file to run malicious commands. If the workflow has a `pull_request:` trigger and the runner accepts jobs from public repos, that code runs on your machine.
+
+### Why this repo is not exposed
+
+Three independent controls block that attack path:
+
+| Layer | Control | Status |
+|---|---|---|
+| **1. Workflow triggers** | The workflow only fires on `push` to `stable/v01.06-locked` and `workflow_dispatch`. There is **no `pull_request:` trigger**. Fork contributors cannot push to your branch and cannot use `workflow_dispatch` without write access — so the workflow never starts for a fork. | ✅ Protected by design |
+| **2. Fork PR approval gate** | GitHub's "Require approval for all outside collaborators" setting means that even if a `pull_request:` trigger were added later, a maintainer must click "Approve" before any job is dispatched to a runner. | ✅ Enabled in org settings |
+| **3. Runner group policy** | The Default runner group's **"Allow public repositories"** checkbox must be enabled for the runner to accept jobs from this repo. This is a deliberate, admin-only action. | ✅ Explicitly enabled by admin |
+
+All three layers would need to fail simultaneously for a fork contributor to run code on the build server. In practice, layer 1 alone is sufficient: without a `pull_request:` trigger, a fork can never start a workflow run regardless of the runner group settings.
+
+### Required runner group setting
+
+To allow the `arm-build-server` runner to serve this repository, the **Default** runner group must have **"Allow public repositories"** enabled:
+
+1. Go to **github.com/organizations/DGAM-PR/settings/actions/runner-groups**
+2. Click **Default**
+3. Check **"Allow public repositories"**
+4. Click **Save**
+
+> ⚠️ If this checkbox is unchecked, jobs will queue indefinitely ("Waiting") even though the runner shows as **Idle**. This is the most common cause of stuck builds.
+
+### Optional: restrict the runner to this repo only
+
+For additional defence-in-depth, you can prevent the runner from being used by any other repo that may be added to the org in the future:
+
+1. On the **Default** runner group page, change **Repository access** from "All repositories" to **"Selected repositories"**
+2. Add only `dgam-pr-iot2050`
 
 ---
 
