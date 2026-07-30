@@ -186,7 +186,7 @@ An **organisation-level** runner can serve any repository in the org, so you onl
   --url https://github.com/DGAM-PR \
   --token <REGISTRATION-TOKEN> \
   --name arm-build-server \
-  --labels self-hosted,linux,arm64 \
+  --labels self-hosted,Linux,ARM64 \
   --work _work \
   --unattended
 ```
@@ -196,8 +196,8 @@ An **organisation-level** runner can serve any repository in the org, so you onl
 | Label | Purpose |
 |-------|---------|
 | `self-hosted` | Required — marks this as a self-hosted runner |
-| `linux` | OS type |
-| `arm64` | Architecture — matched by `runs-on` in the workflow |
+| `Linux` | OS type (capital L — must match exactly what the runner reports) |
+| `ARM64` | Architecture (capital — must match exactly what the runner reports) |
 
 > ⚠️ **Runner access policy**: By default, organisation runners are available to **all** repositories in the org. If you want to restrict it to specific repos only, go to **github.com/organizations/DGAM-PR/settings/actions/runners**, click the runner, and under **Repository access** select the repos that should use it.
 
@@ -226,7 +226,9 @@ The runner will now appear as **Idle** in the organisation's Runners list at **g
 
 ### 2d. Verify runner labels in GitHub
 
-Go to **github.com/organizations/DGAM-PR/settings/actions/runners** and confirm the runner shows labels: `self-hosted`, `linux`, `arm64`.
+Go to **github.com/organizations/DGAM-PR/settings/actions/runners** and confirm the runner shows labels: `self-hosted`, `Linux`, `ARM64`.
+
+> ⚠️ Label matching in GitHub Actions is **case-sensitive**. The labels in `runs-on` in the workflow must match the runner's labels exactly, including capitalisation.
 
 ---
 
