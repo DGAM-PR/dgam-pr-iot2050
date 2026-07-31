@@ -360,18 +360,22 @@ sudo dd if=/dev/zero of=/dev/mmcblk1 bs=4M status=progress conv=fsync
 #### Method 1: Flash eMMC from Service Stick (Recommended)
 
 1. **Prepare USB stick** with .wic file
-2. **Boot IOT2050** from Siemens service stick (Industrial OS)
-  1. Default credentials: `root/root` (Might have to change Password)
+2. **Boot IOT2050** from Siemens service SD Card (Trobuelshoot Industrial OS)
+  1. Default credentials: `root/root` (Might have to change Password, if its the first time login)
   2. If it does not boot from the SD Card do the following:
     1. Set Boot Target`load mmc 0:2 ${kernel_addr_r} linux.efi`
     2. Boot from set Target`bootefi ${kernel_addr_r}{fdtcontroladdr}` 
+    OR
+    1. type `printenv boot_targets` # to check what the targets are
+    2. Then set it to `setenv boot_targets mmc0 mmc1 usb0 usb1 usb2`
+    3. type `boot`
 3. **Mount USB stick**:
    ```bash
    sudo mkdir -p /tmp/usb
    sudo mount -t ext4 /dev/sda1 /tmp/usb
    cd /tmp/usb
    ```
-4. **Flash to eMMC** (this takes several minutes):
+5. **Flash to eMMC** (this takes several minutes):
   - Hint: If this is the first time using dd to mmcblk1, wipe it first with `dd if=/dev/zero of=/dev/mmcblk1 bs=4M status=progress`
    ```bash
    sudo dd if=./iot2050-image-swu-example-iot2050-debian-iot2050.wic \
@@ -380,7 +384,11 @@ sudo dd if=/dev/zero of=/dev/mmcblk1 bs=4M status=progress conv=fsync
            status=progress \
            conv=fsync
    ```
-5. **Reboot**: `sudo reboot`
+6. **Reboot**: 
+  - Best to unmount usb stick first: `sudo umount /dev/sda1 /tmp/usb`
+  - Then do `init 0`, once it stops after a few seconds `take out the power`
+  - Remove the SD Card & USB Stick
+  - Plug power back in and your imaged OS will boot
 
 #### Method 2: Direct SD Card Flash
 
