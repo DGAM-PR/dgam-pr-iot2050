@@ -143,7 +143,7 @@ The PLC-facing configuration ([`kas/plc-facing-dgam-pr.yml`](kas/plc-facing-dgam
 
 ```yaml
 IOT2050_NODE_RED_SUPPORT = "1"           # Enable Node-RED
-IOT2050_META_NODE_RED_PACKAGES = "mraa node-red node-red-gpio node-red-contrib-opcua node-red-contrib-modbus node-red-contrib-s7 node-red-node-serialport"
+IOT2050_META_NODE_RED_PACKAGES = "mraa node-red node-red-gpio node-red-contrib-opcua node-red-contrib-modbus node-red-contrib-s7 node-red-node-serialport node-red-contrib-buffer-parser"
 IOT2050_DEBIAN_DEBUG_PACKAGES:append = " mosquitto mosquitto-clients"  # Ensure MQTT broker is present
 ```
 
@@ -158,6 +158,7 @@ IOT2050_DEBIAN_DEBUG_PACKAGES:append = " mosquitto mosquitto-clients"  # Ensure 
 | `node-red-contrib-modbus` | Modbus protocol nodes |
 | `node-red-contrib-s7` | Siemens S7 PLC communication nodes |
 | `node-red-node-serialport` | Serial port nodes |
+| `node-red-contrib-buffer-parser` | Buffer/array data type conversion nodes |
 
 ### Node-RED Serial Port Access (`/dev/ttyUSB0`)
 
@@ -667,6 +668,37 @@ Both device configurations use **NetworkManager** to manage network interfaces. 
 | `eno2` | Static `192.168.1.4/24` (PLC-facing) / `192.168.1.3/24` (VPN-facing) | PLC / VPN-facing network (4G modem gateway) |
 
 `eno1` uses its default NM-managed profile (pre-configured in the base image). `eno2` gets a static IP via a custom NM connection profile deployed by the `network-config` recipe. The IP differs per device role, selected at build time via the `ENO2_PROFILE` BitBake variable.
+
+### eno1 — PLC-facing DHCP server
+
+Only the PLC-facing image installs `dnsmasq-config`. Dnsmasq keeps `eno1` at its existing static `192.168.200.1/24` address and provides DHCP on that interface only:
+
+| Setting | Value |
+|---------|-------|
+| Interface | `eno1` (bottom X1 P1 port) |
+| Server address | `192.168.200.1/24` |
+| Lease pool | `192.168.200.5`–`192.168.200.254` |
+| Reserved addresses | `192.168.200.2`–`192.168.200.4` |
+| Lease time | 12 hours |
+| DNS service | Disabled |
+| Advertised gateway/DNS | None (isolated PLC link) |
+
+Dnsmasq uses dynamic interface binding, so it can run while the cable is disconnected and begins answering automatically when a DHCP client is connected. It explicitly binds to `eno1` and excludes `eno2`. The PLC-facing public firewalld profile permits UDP port 67 so address-less clients can reach dnsmasq; because dnsmasq listens only on `eno1`, `eno2` does not provide DHCP. The VPN-facing image neither installs dnsmasq nor opens this port.
+
+Implementation files:
+
+- Recipe: [`meta-dgam-pr/recipes-core/dnsmasq-config/dnsmasq-config_1.0.bb`](meta-dgam-pr/recipes-core/dnsmasq-config/dnsmasq-config_1.0.bb)
+- Dnsmasq configuration: [`meta-dgam-pr/recipes-core/dnsmasq-config/files/plc-facing.conf`](meta-dgam-pr/recipes-core/dnsmasq-config/files/plc-facing.conf)
+- PLC-facing firewall profile: [`meta-dgam-pr/recipes-core/firewall-config-iot2050/files/public-plc.xml`](meta-dgam-pr/recipes-core/firewall-config-iot2050/files/public-plc.xml)
+
+To verify on a PLC-facing device:
+
+```bash
+ip -4 addr show eno1
+systemctl status dnsmasq
+ss -ulnp | grep ':67 '
+cat /var/lib/misc/dnsmasq.leases
+```
 
 ### eno2 — Static IP (NetworkManager profile)
 

@@ -4,6 +4,10 @@
 # serial devices such as /dev/ttyUSB0 for Modbus/S7/OPC-UA communication.
 usermod -a -G dialout root
 
+# Install extra Node-RED community nodes not shipped in meta-node-red.
+# Requires internet access on first boot.
+npm install --prefix /root/.node-red node-red-contrib-buffer-parser@3.2.2
+
 # Restart Node-RED so the new group membership takes effect.
 # Guard against environments where systemctl is not yet available
 # (e.g. during early image build / chroot install).

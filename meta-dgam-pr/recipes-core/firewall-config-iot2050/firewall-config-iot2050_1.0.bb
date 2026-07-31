@@ -4,10 +4,15 @@ LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/Apache-2.0;md5=89aea4e17d99a7ca
 
 inherit dpkg-raw
 
+# Only the PLC-facing profile opens the DHCP server port. The VPN-facing
+# profile remains unchanged.
+FIREWALL_PROFILE ??= "vpn"
+
 SRC_URI = " \
     file://mqtt.xml \
     file://node-red.xml \
     file://public.xml \
+    file://public-plc.xml \
     file://firewalld.conf \
     file://postinst \
 "
@@ -35,9 +40,13 @@ do_install() {
     install -m 0644 ${WORKDIR}/mqtt.xml     ${D}/etc/firewalld/services/mqtt.xml
     install -m 0644 ${WORKDIR}/node-red.xml ${D}/etc/firewalld/services/node-red.xml
 
-    # Zone override — activates the custom services in the public zone
+    # Zone override — the PLC profile additionally permits DHCP requests.
     install -d ${D}/etc/firewalld/zones
-    install -m 0644 ${WORKDIR}/public.xml   ${D}/etc/firewalld/zones/public.xml
+    if [ "${FIREWALL_PROFILE}" = "plc" ]; then
+        install -m 0644 ${WORKDIR}/public-plc.xml ${D}/etc/firewalld/zones/public.xml
+    else
+        install -m 0644 ${WORKDIR}/public.xml ${D}/etc/firewalld/zones/public.xml
+    fi
 
     # Override firewalld.conf to set IPv6_rpfilter=no (IOT2050 kernel missing
     # FIB modules; strict RPF causes COMMAND_FAILED crash on cold boot).

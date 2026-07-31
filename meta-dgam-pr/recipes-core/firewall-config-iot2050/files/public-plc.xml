@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<zone>
+  <short>Public</short>
+  <description>Public zone with PLC-facing services and DHCP server access</description>
+  <service name="dhcpv6-client"/>
+  <service name="ssh"/>
+  <service name="mqtt"/>
+  <service name="node-red"/>
+  <!-- dnsmasq itself is bound exclusively to eno1. Opening UDP 67 in this zone
+       permits DHCP before a client has an address; no DHCP service listens on eno2. -->
+  <port port="67" protocol="udp"/>
+  <masquerade/>
+  <forward/>
+</zone>
