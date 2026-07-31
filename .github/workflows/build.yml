@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - "stable/v01.06-locked"
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
   workflow_dispatch:
 
 # Only one build at a time per branch — avoids two jobs racing on the same

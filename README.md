@@ -143,7 +143,7 @@ The PLC-facing configuration ([`kas/plc-facing-dgam-pr.yml`](kas/plc-facing-dgam
 
 ```yaml
 IOT2050_NODE_RED_SUPPORT = "1"           # Enable Node-RED
-IOT2050_META_NODE_RED_PACKAGES = "mraa node-red node-red-gpio node-red-contrib-opcua node-red-contrib-modbus node-red-contrib-s7 node-red-node-serialport"
+IOT2050_META_NODE_RED_PACKAGES = "mraa node-red node-red-gpio node-red-contrib-opcua node-red-contrib-modbus node-red-contrib-s7 node-red-node-serialport node-red-contrib-buffer-parser"
 IOT2050_DEBIAN_DEBUG_PACKAGES:append = " mosquitto mosquitto-clients"  # Ensure MQTT broker is present
 ```
 
@@ -158,6 +158,7 @@ IOT2050_DEBIAN_DEBUG_PACKAGES:append = " mosquitto mosquitto-clients"  # Ensure 
 | `node-red-contrib-modbus` | Modbus protocol nodes |
 | `node-red-contrib-s7` | Siemens S7 PLC communication nodes |
 | `node-red-node-serialport` | Serial port nodes |
+| `node-red-contrib-buffer-parser` | Buffer/array data type conversion nodes |
 
 ### Node-RED Serial Port Access (`/dev/ttyUSB0`)
 
