@@ -21,7 +21,16 @@ echo "=== Wiping ISAR build output ==="
 # The 'build/' directory is created by kas inside the workspace.
 # It can be several GB; remove it to free space on /.
 if [ -d "build" ]; then
-  rm -rf build/
+  # ponytail: ISAR sbuild creates root-owned files inside chroot rootfs dirs.
+  # The runner user cannot delete them directly; delegate to a throw-away
+  # Docker container (runs as root) which has the necessary privilege.
+  # Ceiling: requires Docker to be available on the runner (it always is here).
+  docker run --rm \
+    -v "$(pwd)/build:/mnt/build" \
+    --entrypoint "" \
+    debian:stable-slim \
+    sh -c "rm -rf /mnt/build/*"
+  rm -rf build/   # safe now — directory is runner-owned, contents are gone
   echo "Removed build/"
 else
   echo "No build/ directory found — nothing to remove."
