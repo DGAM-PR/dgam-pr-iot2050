@@ -390,19 +390,6 @@ sudo dd if=/dev/zero of=/dev/mmcblk1 bs=4M status=progress conv=fsync
   - Remove the SD Card & USB Stick
   - Plug power back in and your imaged OS will boot
 
-#### Method 2: Direct SD Card Flash
-
-```bash
-# Flash .wic to SD card on your PC
-sudo dd if=build/tmp/deploy/images/iot2050/iot2050-image-swu-example-iot2050-debian-iot2050.wic \
-        of=/dev/mmcblk0 \
-        bs=4M \
-        oflag=sync \
-        status=progress
-
-# Or use Balena Etcher (GUI tool)
-```
-
 ---
 
 ## SWUpdate Usage
