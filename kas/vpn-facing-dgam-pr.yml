@@ -30,6 +30,9 @@ local_conf_header:
     USER_root[password] ??= "root"
     USER_root[flags] ??= "clear-text-password force-passwd-change"
   dgam_customization: |
+    # The node-red-contrib-buffer-parser recipe uses npm.bbclass from meta-node-red,
+    # which is not included in the VPN-facing build. Mask it here.
+    BBMASK += "meta-dgam-pr/recipes-app/node-red-contrib-buffer-parser/"
     # Strip unwanted packages
     IMAGE_INSTALL:remove = "tcf-agent"
     IOT2050_DOCKER_SUPPORT = "0"
