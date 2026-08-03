@@ -968,6 +968,14 @@ https://support.industry.siemens.com/cs/document/109741799/downloads-for-simatic
 - Network access to a Debian mirror (for `apt`)
 - The Example OS from Siemens has a more flexible setup and no read-only file OS, making it easier to perform Firmware Updates.
 
+You should be able to find the firmware on the build server here:
+
+```
+su3@rc-am12-build:/data/firmware$ pwd
+/data/firmware
+```
+> Always use the directory with the latest version that matches the branch version, for example v01.06.*
+
 ### Doing it via a Service Stick os on an SD Card (Recommended)
 
 The reason I recommend this, is that I use the SD Card for putting the OS onto the EMMC of the dege devices. 
