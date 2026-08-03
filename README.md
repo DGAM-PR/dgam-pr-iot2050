@@ -250,20 +250,6 @@ Choose the appropriate configuration for your device type:
 
 ⚠️ The `--isar` flag is **required** because the IOT2050 platform uses ISAR rather than standard Yocto/OpenEmbedded.
 
-### Building on AMD64 (x86_64) Hosts
-
-If you are building on an **AMD64 (x86_64)** machine, you must use the `building-on-amd64` branch of this repository instead of `main`. This branch adds the following override to the KAS configuration:
-
-```yaml
-local_conf_header:
-  cross_compile: |
-    ISAR_CROSS_COMPILE = "0"
-```
-
-**Why this is needed**: When building for the IOT2050 (ARM64 target) on an AMD64 host, ISAR's default behaviour is to use the host system's cross-compiler toolchain. However, the cross-compiler available on a typical AMD64 Debian/Ubuntu host is **not compatible** with the IOT2050 target architecture as configured by `meta-iot2050`. Setting `ISAR_CROSS_COMPILE = "0"` disables this and instructs ISAR to use its own internal Debian-based build environment (via `qemu-user-static` binfmt emulation) instead, which is the correct and supported method for this project.
-
-> ℹ️ On native ARM64 build hosts (e.g. a Raspberry Pi or an ARM64 CI runner), `ISAR_CROSS_COMPILE` does not need to be overridden and the `main` branch can be used directly.
-
 ### Build Options
 
 Replace `<config-file>` with either `kas/plc-facing-dgam-pr.yml` or `kas/vpn-facing-dgam-pr.yml`:
@@ -324,17 +310,6 @@ build/
 | `.wic` | Bootable disk image | Initial installation |
 | `.swu` | Update package | System updates |
 
-### Copy Files from Build Server
-
-Example using SCP to transfer build artifacts:
-
-```bash
-# Create directory on destination machine
-mkdir ~/images
-
-# Copy both .wic and .swu files from build server
-scp <username>@<buildserver>:repos/dgam-pr-iot2050/build/tmp/deploy/images/iot2050/iot2050-image-swu-example-iot2050-debian-iot2050.{wic,swu} ~/images/
-```
 
 ---
 
@@ -362,20 +337,20 @@ sudo dd if=/dev/zero of=/dev/mmcblk1 bs=4M status=progress conv=fsync
 1. **Prepare USB stick** with .wic file
 2. **Boot IOT2050** from Siemens service SD Card (Trobuelshoot Industrial OS)
   1. Default credentials: `root/root` (Might have to change Password, if its the first time login)
-  2. If it does not boot from the SD Card do the following:
-    1. Set Boot Target`load mmc 0:2 ${kernel_addr_r} linux.efi`
-    2. Boot from set Target`bootefi ${kernel_addr_r}{fdtcontroladdr}` 
-    OR
+  2a If it does not boot from the SD Card do the following:
     1. type `printenv boot_targets` # to check what the targets are
     2. Then set it to `setenv boot_targets mmc0 mmc1 usb0 usb1 usb2`
     3. type `boot`
+  2b
+    1. Set Boot Target`load mmc 0:2 ${kernel_addr_r} linux.efi`
+    2. Boot from set Target`bootefi ${kernel_addr_r}{fdtcontroladdr}` 
 3. **Mount USB stick**:
    ```bash
    sudo mkdir -p /tmp/usb
    sudo mount -t ext4 /dev/sda1 /tmp/usb
    cd /tmp/usb
    ```
-5. **Flash to eMMC** (this takes several minutes):
+4. **Flash to eMMC** (this takes several minutes):
   - Hint: If this is the first time using dd to mmcblk1, wipe it first with `dd if=/dev/zero of=/dev/mmcblk1 bs=4M status=progress`
    ```bash
    sudo dd if=./iot2050-image-swu-example-iot2050-debian-iot2050.wic \
@@ -384,7 +359,7 @@ sudo dd if=/dev/zero of=/dev/mmcblk1 bs=4M status=progress conv=fsync
            status=progress \
            conv=fsync
    ```
-6. **Reboot**: 
+5. **Reboot**: 
   - Best to unmount usb stick first: `sudo umount /dev/sda1 /tmp/usb`
   - Then do `init 0`, once it stops after a few seconds `take out the power`
   - Remove the SD Card & USB Stick
@@ -440,15 +415,6 @@ reboot
 
 mount /dev/sda1 /mnt
 swupdate -i /mnt/iot2050-image-swu-example-iot2050-debian-iot2050.swu
-reboot
-```
-
-#### Method 3: Direct Download
-
-```bash
-# On the IOT2050 device
-wget https://your-update-server.com/updates/latest.swu -O /tmp/update.swu
-swupdate -i /tmp/update.swu
 reboot
 ```
 
@@ -1000,48 +966,14 @@ https://support.industry.siemens.com/cs/document/109741799/downloads-for-simatic
   - `iot2050-firmware-update_<version>_arm64.deb`
   - `IOT2050-FW-Update-PKG-V01.xx.xx-<hash>.tar.xz`
 - Network access to a Debian mirror (for `apt`)
+- The Example OS from Siemens has a more flexible setup and no read-only file OS, making it easier to perform Firmware Updates.
 
----
+### Doing it via a Service Stick os on an SD Card (Recommended)
 
-### 1. Prepare Files on the IOT2050
+The reason I recommend this, is that I use the SD Card for putting the OS onto the EMMC of the dege devices. 
+This way you can make the SD Card once and use it for all subsequent devices.
 
-On your PC, download the firmware update tool and package from Siemens, then copy them to a USB Stick:
-
-- A USB Stick only containing these files, not the same stick as the USB Stick you use to install service-stick siemens Industrial OS to eMMC.
-- Make sure to copy both the .deb and the .tar.xz from either your siemens download or your KAS build/tmp/deploy/iot2050/ directory (this one is preferred as it fits the image you will eventually run)
-  - Use the following standard example build to get the latest firmware files: `./kas-container build ./kas-iot2050-example.yml`
-
----
-
-### 2. Boot Service Stick and Install OS to eMMC
-
-1. Boot the IOT2050 from the **service stick/example image**.
-  0. Insert USB Stick
-  1. Interrupt the boot process to get into u-boot upon starting the device
-  2. following commands
-    1. `setenv devnum 0` <- bootcmd_usb0=devnum=0; run usb_boot
-    2. `run bootcmd_usb0` <- usb_boot=usb start; if usb dev ${devnum}; then devtype=usb; run scan_dev_for_boot_part; fi
-2. Use the menu to **install the OS to eMMC** (Advanced PG2).
-  1. `Important:` Make sure to install an APT Mirror and also select the development packages!!!
-3. Reboot so the device runs from the freshly installed OS on eMMC.
-
----
-
-### 3. Configure Debian Mirror and Install Dependencies
-
-1. Configure `/etc/apt/sources.list` with a valid Debian mirror (as per Siemens example image/service stick).
-2. Update package lists and install required packages:
-
-```bash
-apt update # Loads all the info (Do NOT apt Upgrade!)
-apt install python3-progress
-```
-
-(Install additional dev / Python packages if required by your environment.)
-
----
-
-### 4. Ensure `/etc/os-release` Contains Required Keys
+#### 1. Ensure `/etc/os-release` Contains Required Keys
 
 Sometimes the BUILD_ID is missing, and the firmware update requires BUILD_ID derrived from /etc/os-release
 
@@ -1078,7 +1010,127 @@ The file /etc/os-release should now hold the current firmware version in the for
 
 ---
 
-### 5. Install Firmware Update Tool
+#### 2. Run Firmware Update
+
+```bash
+#Insert USB Stick that has the latest firmware files, mount it and copy it to ~
+mkdir /tmp/usb
+sudo mount -t ext4 /dev/sda1 /tmp/usb #could be sdb1 if you have both usb sticks plugged in
+cp -R /tmp/usb/firmware ./
+cd ~/firmware
+```
+
+From `~/firmware/`
+
+```bash
+iot2050-firmware-update IOT2050-FW-Update-PKG-<Your Version>.tar.xz
+```
+
+During the process:
+
+1. Confirm the warning that the device may become unbootable (`Y`).
+2. When prompted, choose whether to:
+   - keep the current boot order (`Y`), or
+   - reset to defaults (`n`), according to your setup / Siemens guidance.
+3. Allow the device to reboot when the tool finishes.
+
+---
+
+#### 3. If there is no Firmware Tool installed -> Install Firmware Update Tool
+
+```bash
+# Remove any old version (to be sure)
+dpkg -r iot2050-firmware-update || true
+
+# Install new tool
+dpkg -i iot2050-firmware-update-1.1.0_arm64.deb # (or similar)
+apt -f install
+```
+- Possible also do `apt install python3-packages`, however it should be installed after `apt -f`
+- You might need to `apt update` before being able to find
+
+---
+
+### Doing it via an OS on the device itself through Service Stick Example OS
+
+---
+
+#### 1. Prepare Files on the IOT2050
+
+On your PC, download the firmware update tool and package from Siemens, then copy them to a USB Stick:
+
+- A USB Stick only containing these files, not the same stick as the USB Stick you use to install service-stick siemens Industrial OS to eMMC.
+- Make sure to copy both the .deb and the .tar.xz from either your siemens download or your KAS build/tmp/deploy/iot2050/ directory (this one is preferred as it fits the image you will eventually run)
+  - Use the following standard example build to get the latest firmware files: `./kas-container build ./kas-iot2050-example.yml`
+
+---
+
+#### 2. Boot Service Stick and Install OS to eMMC
+
+1. Boot the IOT2050 from the **service stick/example image**.
+  0. Insert USB Stick
+  1. Interrupt the boot process to get into u-boot upon starting the device
+  2. following commands
+    1. `setenv devnum 0` <- bootcmd_usb0=devnum=0; run usb_boot
+    2. `run bootcmd_usb0` <- usb_boot=usb start; if usb dev ${devnum}; then devtype=usb; run scan_dev_for_boot_part; fi
+2. Use the menu to **install the OS to eMMC** (Advanced PG2).
+  1. `Important:` Make sure to install an APT Mirror and also select the development packages!!!
+3. Reboot so the device runs from the freshly installed OS on eMMC.
+
+---
+
+#### 3. Configure Debian Mirror and Install Dependencies
+
+1. Configure `/etc/apt/sources.list` with a valid Debian mirror (as per Siemens example image/service stick).
+2. Update package lists and install required packages:
+
+```bash
+apt update # Loads all the info (Do NOT apt Upgrade!)
+apt install python3-progress
+```
+
+(Install additional dev / Python packages if required by your environment.)
+
+---
+
+#### 4. Ensure `/etc/os-release` Contains Required Keys
+
+Sometimes the BUILD_ID is missing, and the firmware update requires BUILD_ID derrived from /etc/os-release
+
+> Note: The Siemens update script reads `BUILD_ID` (and possibly other keys) from `/etc/os-release`. Missing keys will cause a Python `KeyError`.
+
+0. Inspect `/etc/os-release`:
+
+```bash
+cat /etc/os-release
+```
+
+If that file does not contain BUILD_ID, add it as follows below, else ignore the steps.
+
+1. Check current firmware information (depending on image):
+
+```bash
+fw_printenv fw_version
+# Example output: fw_version=2025.04-V01.05.01-80-gfe007f1
+```
+
+2. Export the trimmed variable
+
+```bash
+CURRENT_VER=$(fw_printenv fw_version | cut -d'-' -f2)
+```
+
+3. Add to /etc/os-release
+
+```bash
+echo "BUILD_ID=$CURRENT_VER" >> /etc/os-release
+```
+
+The file /etc/os-release should now hold the current firmware version in the form of BUILD_ID
+
+---
+
+#### 5. Install Firmware Update Tool
 
 ```bash
 #Insert USB Stick that has the latest firmware files, mount it and copy it to ~
@@ -1098,7 +1150,7 @@ apt -f install
 
 ---
 
-### 6. Run Firmware Update
+#### 6. Run Firmware Update
 
 From `~/firmware/`
 
@@ -1116,7 +1168,7 @@ During the process:
 
 ---
 
-### 7. Verify Firmware Version
+#### 7. Verify Firmware Version
 
 After reboot:
 
