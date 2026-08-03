@@ -336,14 +336,15 @@ sudo dd if=/dev/zero of=/dev/mmcblk1 bs=4M status=progress conv=fsync
 
 1. **Prepare USB stick** with .wic file
 2. **Boot IOT2050** from Siemens service SD Card (Trobuelshoot Industrial OS)
-  1. Default credentials: `root/root` (Might have to change Password, if its the first time login)
-  2a If it does not boot from the SD Card do the following:
-    1. type `printenv boot_targets` # to check what the targets are
-    2. Then set it to `setenv boot_targets mmc0 mmc1 usb0 usb1 usb2`
-    3. type `boot`
-  2b
-    1. Set Boot Target`load mmc 0:2 ${kernel_addr_r} linux.efi`
-    2. Boot from set Target`bootefi ${kernel_addr_r}{fdtcontroladdr}` 
+   1. Default credentials: `root/root` (Might have to change Password, if its the first time login)
+   2. If it does not boot from the SD Card do the following:
+      - **2a.** Try setting boot targets manually:
+        1. Check current targets: `printenv boot_targets`
+        2. Set SD card first: `setenv boot_targets mmc0 mmc1 usb0 usb1 usb2`
+        3. Boot: `boot`
+      - **2b.** If that does not work, load and boot manually:
+        1. Set boot target: `load mmc 0:2 ${kernel_addr_r} linux.efi`
+        2. Boot from set target: `bootefi ${kernel_addr_r} ${fdtcontroladdr}`
 3. **Mount USB stick**:
    ```bash
    sudo mkdir -p /tmp/usb
@@ -351,7 +352,7 @@ sudo dd if=/dev/zero of=/dev/mmcblk1 bs=4M status=progress conv=fsync
    cd /tmp/usb
    ```
 4. **Flash to eMMC** (this takes several minutes):
-  - Hint: If this is the first time using dd to mmcblk1, wipe it first with `dd if=/dev/zero of=/dev/mmcblk1 bs=4M status=progress`
+   - Hint: If this is the first time using dd to mmcblk1, wipe it first with `dd if=/dev/zero of=/dev/mmcblk1 bs=4M status=progress`
    ```bash
    sudo dd if=./iot2050-image-swu-example-iot2050-debian-iot2050.wic \
            of=/dev/mmcblk1 \
@@ -359,11 +360,11 @@ sudo dd if=/dev/zero of=/dev/mmcblk1 bs=4M status=progress conv=fsync
            status=progress \
            conv=fsync
    ```
-5. **Reboot**: 
-  - Best to unmount usb stick first: `sudo umount /dev/sda1 /tmp/usb`
-  - Then do `init 0`, once it stops after a few seconds `take out the power`
-  - Remove the SD Card & USB Stick
-  - Plug power back in and your imaged OS will boot
+5. **Reboot**:
+   - Best to unmount usb stick first: `sudo umount /dev/sda1 /tmp/usb`
+   - Then do `init 0`, once it stops after a few seconds `take out the power`
+   - Remove the SD Card & USB Stick
+   - Plug power back in and your imaged OS will boot
 
 ---
 
