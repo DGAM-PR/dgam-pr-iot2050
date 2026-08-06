@@ -25,6 +25,9 @@ if [ ! -f /var/lib/kubesolo/config ]; then
 # Optional: startup timeout in seconds per component health check (default: 600)
 # Increase on slow storage such as SD cards
 # KUBESOLO_STARTUP_TIMEOUT=600
+
+# Optional: enable the metrics server (default: true)
+KUBESOLO_METRICS_SERVER=true
 EOF
     chmod 600 /var/lib/kubesolo/config
 fi
@@ -40,7 +43,7 @@ echo "To configure and start the service:"
 echo "  1. Edit /var/lib/kubesolo/config"
 echo "  2. Set KUBESOLO_PORTAINER_EDGE_ID and KUBESOLO_PORTAINER_EDGE_KEY"
 echo "  3. Optionally uncomment and adjust KUBESOLO_LOCAL_STORAGE, KUBESOLO_DB_WAL_REPAIR,"
-echo "     KUBESOLO_DISABLE_IPV6, or KUBESOLO_STARTUP_TIMEOUT"
+echo "     KUBESOLO_DISABLE_IPV6, KUBESOLO_STARTUP_TIMEOUT, or KUBESOLO_METRICS_SERVER"
 echo "  4. Run: systemctl start kubesolo"
 echo ""
 echo "The service will retry every 60 seconds if configuration is invalid."

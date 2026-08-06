@@ -25,6 +25,7 @@ while true; do
     unset KUBESOLO_DB_WAL_REPAIR
     unset KUBESOLO_DISABLE_IPV6
     unset KUBESOLO_STARTUP_TIMEOUT
+    unset KUBESOLO_METRICS_SERVER
     source "$ENV_FILE"
 
     if [ -z "$KUBESOLO_PORTAINER_EDGE_ID" ]; then
@@ -49,8 +50,9 @@ while true; do
     export KUBESOLO_DB_WAL_REPAIR="${KUBESOLO_DB_WAL_REPAIR:-false}"
     export KUBESOLO_DISABLE_IPV6="${KUBESOLO_DISABLE_IPV6:-false}"
     export KUBESOLO_STARTUP_TIMEOUT="${KUBESOLO_STARTUP_TIMEOUT:-600}"
+    export KUBESOLO_METRICS_SERVER="${KUBESOLO_METRICS_SERVER:-true}"
 
-    echo "Configuration validated successfully | edge-id: $KUBESOLO_PORTAINER_EDGE_ID | key: ${KUBESOLO_PORTAINER_EDGE_KEY:0:5}... | local-storage: $KUBESOLO_LOCAL_STORAGE | db-wal-repair: $KUBESOLO_DB_WAL_REPAIR | disable-ipv6: $KUBESOLO_DISABLE_IPV6 | startup-timeout: $KUBESOLO_STARTUP_TIMEOUT"
+    echo "Configuration validated successfully | edge-id: $KUBESOLO_PORTAINER_EDGE_ID | key: ${KUBESOLO_PORTAINER_EDGE_KEY:0:5}... | local-storage: $KUBESOLO_LOCAL_STORAGE | db-wal-repair: $KUBESOLO_DB_WAL_REPAIR | disable-ipv6: $KUBESOLO_DISABLE_IPV6 | startup-timeout: $KUBESOLO_STARTUP_TIMEOUT | metrics-server: $KUBESOLO_METRICS_SERVER"
     break
 done
 
