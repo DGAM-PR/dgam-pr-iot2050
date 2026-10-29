@@ -345,13 +345,18 @@ sudo dd if=/dev/zero of=/dev/mmcblk1 bs=4M status=progress conv=fsync
       - **2b.** If that does not work, load and boot manually:
         1. Set boot target: `load mmc 0:2 ${kernel_addr_r} linux.efi`
         2. Boot from set target: `bootefi ${kernel_addr_r} ${fdtcontroladdr}`
-3. **Mount USB stick**:
+3. **Erase Current filesystem on /dev/mmcblk1**
+    ```bash
+    # Wipe filesystem signatures and partition table
+    sudo wipefs -a /dev/mmcblk1
+    ```
+4. **Mount USB stick**
    ```bash
    sudo mkdir -p /tmp/usb
    sudo mount -t ext4 /dev/sda1 /tmp/usb
    cd /tmp/usb
    ```
-4. **Flash to eMMC** (this takes several minutes):
+5. **Flash to eMMC** (this takes several minutes):
    - Hint: If this is the first time using dd to mmcblk1, wipe it first with `dd if=/dev/zero of=/dev/mmcblk1 bs=4M status=progress`
    ```bash
    sudo dd if=./iot2050-image-swu-example-iot2050-debian-iot2050.wic \
@@ -360,7 +365,7 @@ sudo dd if=/dev/zero of=/dev/mmcblk1 bs=4M status=progress conv=fsync
            status=progress \
            conv=fsync
    ```
-5. **Reboot**:
+6. **Reboot**:
    - Best to unmount usb stick first: `sudo umount /dev/sda1 /tmp/usb`
    - Then do `init 0`, once it stops after a few seconds `take out the power`
    - Remove the SD Card & USB Stick
