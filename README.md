@@ -315,20 +315,11 @@ build/
 
 ## Deployment
 
-### First-Install-Only Reminder (from Factory)
+### Initial Instalaltion
 
-1. Erase target eMMC (`/dev/mmcblk1`)
+Before doing anything make sure you have the latest firmware that corresponds with the version of the branch (example v01.06.XX). Everything after the second . should not be as significant. Perform the firmware update first before putting the OS On there so that UBOOT has a compatible setup to boot from when booting the self build image. 
 
-> **Danger:** These commands permanently destroy all data on `/dev/mmcblk1`.  
-> Double-check the device with `lsblk` before running them.
-
-```bash
-# Wipe filesystem signatures and partition table
-sudo wipefs -a /dev/mmcblk1
-
-# (recommended) Zero out the entire eMMC
-sudo dd if=/dev/zero of=/dev/mmcblk1 bs=4M status=progress conv=fsync
-```
+Follow the guide here for the firmware update: [Firmware Updates](#firmware-updates)
 
 ### Subsequent Installations
 
