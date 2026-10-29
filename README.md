@@ -1196,6 +1196,14 @@ Confirm that the reported firmware version matches the firmware package you inst
 
 ## Troubleshooting
 
+### Find out what your external VPN address endpoint is
+
+When dealing with lots of devices it might be difficult to know what the modem's natted vpn address is. From the vpn facing device you can run the below command and find out what that. ip address is.
+
+```bash
+iptables -t nat -L -n -v | grep NETMAP
+```
+
 ### Cleaning the KubeSolo State
 
 When troubleshooting or performing a fresh re-installation of the KubeSolo environment on the IOT2050, you may need to wipe the runtime state without deleting your configuration file.
