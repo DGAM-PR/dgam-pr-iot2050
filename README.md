@@ -1191,14 +1191,13 @@ fw_printenv fw_version
 ```
 
 Confirm that the reported firmware version matches the firmware package you installed.
-
 ---
 
 ## Troubleshooting
 
 ### Find out what your external VPN address endpoint is
 
-When dealing with lots of devices it might be difficult to know what the modem's natted vpn address is. From the vpn facing device you can run the below command and find out what that. ip address is.
+When dealing with lots of devices it might be difficult to know what the modem's natted vpn address is. From the vpn facing device you can connect to your modem over SSH (check default gateway), once connected -> run the below command and find out what that. ip address is.
 
 ```bash
 iptables -t nat -L -n -v | grep NETMAP
