@@ -47,6 +47,15 @@ local_conf_header:
     # Node-RED feature
     IOT2050_NODE_RED_SUPPORT = "1"
     IOT2050_META_NODE_RED_PACKAGES = "mraa node-red node-red-gpio node-red-contrib-opcua node-red-contrib-modbus node-red-contrib-s7 node-red-node-serialport node-red-contrib-buffer-parser"
+    # Node-RED 5 needs Node.js >= 22.9; Debian trixie only has Node 20, so use Node 24 from
+    # NodeSource (not covered by the apt snapshot below). node-red 5.0.9 is in meta-dgam-pr.
+    # :append (not +=) so the default Debian sources from debian-common.conf are kept.
+    DISTRO_APT_SOURCES:append = " conf/distro/nodesource-24.list"
+    THIRD_PARTY_APT_KEYS:append = " https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key;sha256sum=b42e0321dabdc24e892115da705cf061167eac12a317f23d329862d0aa0a271d"
+    # NodeSource's nodejs bundles npm (and conflicts with Debian's npm package) and ships the
+    # headers node-gyp needs in /usr/include/node.
+    NPM_CLASS_PACKAGE = "nodejs"
+    NPM_INSTALL_FLAGS = "--nodedir=/usr"
   package-lock: |
     # 2026-03-23 17:13:35 UTC
     # 18:13:35 in your local Amsterdam time, UTC+1

@@ -160,6 +160,14 @@ IOT2050_DEBIAN_DEBUG_PACKAGES:append = " mosquitto mosquitto-clients"  # Ensure 
 | `node-red-node-serialport` | Serial port nodes |
 | `node-red-contrib-buffer-parser` | Buffer/array data type conversion nodes |
 
+**Node-RED 5.0.9 / Node.js 24 (PLC-facing only)**: `meta-iot2050` ships Node-RED 4.0.9 on Debian trixie's Node.js 20, but Node-RED 5 requires Node.js >= 22.9. The PLC-facing build therefore:
+
+- adds the NodeSource `node_24.x` apt repo ([`nodesource-24.list`](meta-dgam-pr/conf/distro/nodesource-24.list), key pinned by sha256) via `DISTRO_APT_SOURCES` / `THIRD_PARTY_APT_KEYS` in the kas file;
+- overrides `node-red` with [`node-red_5.0.9.bb`](meta-dgam-pr/recipes-app/node-red/node-red_5.0.9.bb) (own `npm-shrinkwrap.json`), which wins over upstream 4.0.9 by version;
+- uses NodeSource's `nodejs` (bundles npm) instead of Debian's `npm` + `libnode115` in the npm build chroot ([`sbuild-chroot-target-npm_%.bbappend`](meta-dgam-pr/recipes-app/node-red/sbuild-chroot-target-npm_%.bbappend)) and as `NPM_CLASS_PACKAGE`;
+- rebuilds `mraa` against Node 24 headers with C++20 ([`mraa_%.bbappend`](meta-dgam-pr/recipes-app/node-red/mraa_%.bbappend)).
+
+The VPN-facing build masks `recipes-app/node-red/` and is unchanged. **Caveat:** the NodeSource repo is not covered by `ISAR_APT_SNAPSHOT_TIMESTAMP`, so `nodejs` can change between builds (pin the version by changing the repo or adding an apt preference if reproducibility matters). To update Node-RED, bump the recipe version and regenerate the shrinkwrap as described in `meta-node-red/classes/npm.bbclass`.
 ### Node-RED Serial Port Access (`/dev/ttyUSB0`)
 
 Node-RED on the PLC-facing device runs as `root` (the default for the IOT2050 Node-RED service). To allow it to open serial devices such as `/dev/ttyUSB0` (used by Modbus, S7, and serial-port nodes), the `root` user must be a member of the `dialout` group.

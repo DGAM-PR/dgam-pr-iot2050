@@ -33,6 +33,8 @@ local_conf_header:
     # The node-red-contrib-buffer-parser recipe uses npm.bbclass from meta-node-red,
     # which is not included in the VPN-facing build. Mask it here.
     BBMASK += "meta-dgam-pr/recipes-app/node-red-contrib-buffer-parser/"
+    # Same for the Node-RED 5 / Node 24 overrides (node-red, mraa, npm chroot); PLC-facing only.
+    BBMASK += "meta-dgam-pr/recipes-app/node-red/"
     # Strip unwanted packages
     IMAGE_INSTALL:remove = "tcf-agent"
     IOT2050_DOCKER_SUPPORT = "0"
