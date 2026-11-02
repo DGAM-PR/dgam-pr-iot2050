@@ -131,4 +131,64 @@ Run from the Troubleshooting OS booted from the SD card.
    - Remove the SD card and the USB stick
    - Plug the power back in: the dgam-pr Debian OS boots from eMMC
 
-Next steps after first boot (device identity, KubeSolo config, network): see [README.md](README.md).
+---
+
+## 3. First Boot Configuration
+
+Login on the new OS (laptop on `eno1`, `192.168.200.1/24`, or serial/console).
+
+### 3.1 Device identity (both device types)
+
+```bash
+vi /var/lib/device-identity/env
+```
+
+Replace the placeholders (`VPN_OR_PLC_FACING` is pre-filled at build time, leave it):
+
+```bash
+LOCATION= # amsterdam-zuid
+GROUP= #spoorbrug or tunnel
+EDGEDEVICENAME= #edge-***
+```
+
+> Restart the device first before moving on to Kubesolo to make sure the devce-identity is up to date
+Restart the edge device: `reboot`
+
+
+### 3.2 KubeSolo (VPN-facing device only)
+
+```bash
+vi /var/lib/kubesolo/config
+```
+
+Uncomment and set (both are required):
+
+```bash
+KUBESOLO_PORTAINER_EDGE_ID=device-001
+KUBESOLO_PORTAINER_EDGE_KEY=<base64 key>
+```
+
+The service polls the file every 60 s and starts by itself; to start it right away:
+
+```bash
+systemctl start kubesolo
+systemctl status kubesolo
+```
+
+> KubeSolo needs internet (`registry-1.docker.io`) through `eno2` before it starts. Optional variables: see [KubeSolo Configuration](README.md#kubesolo-configuration).
+
+### 3.3 Network check
+
+| Device | `eno2` IP | Extra |
+|---|---|---|
+| PLC-facing | `192.168.1.4/24` | `eno1` serves DHCP (`192.168.200.5`–`254`) |
+| VPN-facing | `192.168.1.3/24` | |
+
+```bash
+ip addr show eno2
+nmcli connection show eno2-static
+ping -c 2 1.1.1.1       # connectivity
+ping -c 2 google.com    # DNS
+```
+
+Details and changing settings: [Network Configuration](README.md#network-configuration).
