@@ -217,6 +217,8 @@ The VPN-facing image includes support for the **IOT2050 Advanced SM** variant (A
 
 #### Steps
 
+> Advanced SM Devices Only (4GB in our case) Uppon first login before doing any firmrware there might be a message stating: "EIO firmware need update via cli iot2050-eio fwu controller!", if so connect the device to the internet via the top port of the device and run 'iot2050-eio fwu controller'.
+
 1. Download the **EIO firmware & binaries** package from [Siemens Industry Online Support (SIOS)](https://support.industry.siemens.com/cs/document/109741799/).
 
 2. Extract the contents into:
