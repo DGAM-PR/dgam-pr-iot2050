@@ -1024,10 +1024,10 @@ The file /etc/os-release should now hold the current firmware version in the for
 mkdir /tmp/usb
 sudo mount -t ext4 /dev/sda1 /tmp/usb #could be sdb1 if you have both usb sticks plugged in
 cp -R /tmp/usb/firmware ./
-cd ~/firmware
+cd ~/firmware/V01.XX/XX # Latest version
 ```
 
-From `~/firmware/`
+From `~/firmware//V01.XX/XX`
 
 ```bash
 iot2050-firmware-update IOT2050-FW-Update-PKG-<Your Version>.tar.xz
