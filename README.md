@@ -27,6 +27,9 @@ This project extends the Siemens IOT2050 platform with custom functionality for 
 
 ```
 .
+├── clean-build-deps.sh          # Removes build/ and fetched layer repos
+├── docs/                        # Extra docs (e.g. ci-runner-setup.md)
+├── scripts/                     # CI helper scripts
 ├── kas/
 │   ├── plc-facing-dgam-pr.yml   # PLC-facing device configuration
 │   └── vpn-facing-dgam-pr.yml   # VPN-facing device configuration (with Kubernetes)
@@ -34,10 +37,15 @@ This project extends the Siemens IOT2050 platform with custom functionality for 
 │   ├── conf/
 │   │   └── layer.conf          # Layer configuration
 │   ├── recipes-app/
+│   │   ├── iot2050-eiofsd/     # EIO binaries bbappend (IOT2050 Advanced SM, VPN-facing)
 │   │   ├── kubectl/            # Kubernetes CLI tool
-│   │   └── kubesolo/           # Single-node Kubernetes setup
+│   │   ├── kubesolo/           # Single-node Kubernetes setup
+│   │   ├── mosquitto-config/   # MQTT listener on 1883 (PLC-facing)
+│   │   ├── node-red-config/    # root in dialout group (PLC-facing)
+│   │   └── node-red-contrib-buffer-parser/  # Node-RED buffer parser node (PLC-facing)
 │   └── recipes-core/
 │       ├── device-identity/          # Host-wide device identity env vars
+│       ├── dnsmasq-config/           # DHCP server on eno1 (PLC-facing)
 │       ├── firewall-config-iot2050/  # Firewalld zone and service definitions
 │       ├── network-config/           # NetworkManager eno2 static IP profile
 │       └── serial-config/            # /dev/ttyUSB0 baud rate (230400 8N1)
@@ -103,17 +111,14 @@ flowchart TD
 
 ### KAS Configuration Chain
 
-Both configurations use a layered include approach:
+Both configurations include only the base ISAR config of `meta-iot2050` and select layers themselves:
 
 ```
-kas/[plc|vpn]-facing-dgam-pr.yml
-  └─ meta-iot2050/kas-iot2050-swupdate.yml
-      └─ meta-iot2050/kas-iot2050-example.yml
-          ├─ meta-iot2050/kas/iot2050.yml (base ISAR config)
-          ├─ meta-iot2050/kas/opt/example.yml
-          ├─ meta-iot2050/kas/opt/node-red.yml
-          └─ meta-iot2050/kas/opt/sm.yml
+kas/[plc|vpn]-facing-dgam-pr.yml   (target: iot2050-image-swu-example)
+  └─ meta-iot2050/kas/iot2050.yml (base ISAR config)
 ```
+
+Both files pin `meta-iot2050` to a fixed commit and pin the Debian apt snapshot (`ISAR_USE_APT_SNAPSHOT = "1"`, `ISAR_APT_SNAPSHOT_TIMESTAMP`) for reproducible builds.
 
 ### Active Layers
 
@@ -122,29 +127,42 @@ Both builds include these Yocto/ISAR layers:
 1. **isar/meta** - ISAR core (Debian build system)
 2. **cip-core** - Civil Infrastructure Platform packages
 3. **meta-iot2050/meta** - IOT2050 hardware support
-4. **meta-iot2050/meta-example** - Example applications
-5. **meta-iot2050/meta-node-red** - Node-RED (disabled in VPN-facing config)
-6. **meta-iot2050/meta-sm** - SM variant support
-7. **meta-dgam-pr** - Custom DGAM PR packages
+4. **meta-iot2050/meta-example** - Example applications (required for `iot2050-image-swu-example`)
+5. **meta-dgam-pr** - Custom DGAM PR packages
+
+Per device:
+
+| Layer | PLC-facing | VPN-facing |
+|---|---|---|
+| **meta-iot2050/meta-node-red** - Node-RED | ✅ | ❌ |
+| **meta-iot2050/meta-sm** - SM variant support (AM6548 DTB + EIO subsystem) | ❌ (only RS232 on X30 is needed) | ✅ |
 
 ### Configuration Overrides
 
 The VPN-facing configuration ([`kas/vpn-facing-dgam-pr.yml`](kas/vpn-facing-dgam-pr.yml)) includes additional customizations:
 
 ```yaml
-IOT2050_NODE_RED_SUPPORT = "0"           # Disable Node-RED
-IOT2050_DOCKER_SUPPORT = "0"             # Disable Docker
-IMAGE_INSTALL:append = " kubesolo"       # Add kubesolo package
-IMAGE_INSTALL:append = " kubectl"        # Add kubectl package
-INITRAMFS_OVERLAY_MOUNT_OPTION = "defaults,nodev,nosuid"  # Hardened mounts
+BBMASK += "meta-dgam-pr/recipes-app/node-red-contrib-buffer-parser/"  # needs meta-node-red's npm.bbclass, not present here
+IMAGE_INSTALL:remove = "tcf-agent"
+IOT2050_DOCKER_SUPPORT = "0"             # Disable Docker (Node-RED layer is simply not included)
+IOT2050_DEBIAN_DEBUG_PACKAGES:remove = "mosquitto mosquitto-clients"
+ENO2_PROFILE = "vpn"                     # eno2 static IP 192.168.1.3/24
+IMAGE_INSTALL:append = " network-config kubesolo kubectl firewall-config-iot2050 serial-config device-identity"
+INITRAMFS_OVERLAY_MOUNT_OPTIONS = "defaults,nodev,nosuid"  # Hardened mounts
 ```
 
 The PLC-facing configuration ([`kas/plc-facing-dgam-pr.yml`](kas/plc-facing-dgam-pr.yml)) includes the following customizations:
 
 ```yaml
+BBMASK += "meta-dgam-pr/recipes-app/iot2050-eiofsd/"  # EIO recipe only exists with meta-sm
+IMAGE_INSTALL:remove = "tcf-agent"
+IOT2050_DOCKER_SUPPORT = "0"             # Disable Docker
+IOT2050_DEBIAN_DEBUG_PACKAGES:append = " mosquitto mosquitto-clients"  # Ensure MQTT broker is present
+FIREWALL_PROFILE = "plc"                 # public-plc.xml: also permits DHCP (67/udp)
+ENO2_PROFILE = "plc"                     # eno2 static IP 192.168.1.4/24
+IMAGE_INSTALL:append = " network-config mosquitto-config firewall-config-iot2050 node-red-config serial-config device-identity dnsmasq-config"
 IOT2050_NODE_RED_SUPPORT = "1"           # Enable Node-RED
 IOT2050_META_NODE_RED_PACKAGES = "mraa node-red node-red-gpio node-red-contrib-opcua node-red-contrib-modbus node-red-contrib-s7 node-red-node-serialport node-red-contrib-buffer-parser"
-IOT2050_DEBIAN_DEBUG_PACKAGES:append = " mosquitto mosquitto-clients"  # Ensure MQTT broker is present
 ```
 
 **Node-RED package selection decision**: The default `node-red-preinstalled-nodes` meta-package from `meta-iot2050` includes packages not needed for PLC communication (`node-red-dashboard`, `node-red-node-sqlite`, `node-red-node-random`, `mindconnect-node-red-contrib-mindconnect`). Instead, `IOT2050_META_NODE_RED_PACKAGES` is explicitly set to include only the packages required for PLC-facing operation:
@@ -444,7 +462,7 @@ If an update fails:
 The IOT2050 uses a read-only root filesystem with writable overlay directories for data persistence. For security hardening, overlay mount options are configured in the build (see [Configuration Overrides](#configuration-overrides)):
 
 ```yaml
-INITRAMFS_OVERLAY_MOUNT_OPTION = "defaults,nodev,nosuid"
+INITRAMFS_OVERLAY_MOUNT_OPTIONS = "defaults,nodev,nosuid"
 ```
 
 **What this does**:
@@ -480,8 +498,8 @@ The kubesolo service is automatically installed but requires per-device configur
 
 The service uses a wrapper script (`kubesolo-start.sh`) as its `ExecStart`. This script:
 1. Polls `/var/lib/kubesolo/config` every **60 seconds** until both required variables are set
-2. Exports `KUBESOLO_LOCAL_STORAGE`, defaulting to `false` if not set — the binary reads this env var directly (upstream default is `true`, so the explicit default is a meaningful override)
-3. Waits for internet connectivity before launching kubesolo, then retries every 5 minutes if kubesolo exits for any reason
+2. Exports `KUBESOLO_LOCAL_STORAGE` (default `false`), `KUBESOLO_DB_WAL_REPAIR` (default `false`), `KUBESOLO_DISABLE_IPV6` (default `false`), `KUBESOLO_STARTUP_TIMEOUT` (default `600`) and `KUBESOLO_METRICS_SERVER` (default `true`) — the binary reads these env vars directly. For `KUBESOLO_LOCAL_STORAGE` the upstream default is `true`, so the explicit default is a meaningful override. The effective values are logged on startup.
+3. Waits for internet connectivity (`curl --head https://registry-1.docker.io`, checked every 30 seconds) before launching kubesolo, then retries every 5 minutes if kubesolo exits for any reason
 
 #### Automatic Retry Behavior
 
@@ -501,6 +519,7 @@ If kubesolo itself crashes after a successful start:
 | `KUBESOLO_DB_WAL_REPAIR` | No | `false` | Run SQLite WAL integrity check and repair on startup — useful after power-loss |
 | `KUBESOLO_DISABLE_IPV6` | No | `false` | Disable IPv6 for CoreDNS reverse zones and kubelet node address registration |
 | `KUBESOLO_STARTUP_TIMEOUT` | No | `600` | Seconds to wait per component health check on startup; increase on slow SD cards |
+| `KUBESOLO_METRICS_SERVER` | No | `true` | Enable the Kubernetes metrics server. Note: the default config written by `postinst` sets this to `true` explicitly (uncommented) |
 
 #### Per-Device Setup
 
@@ -525,6 +544,9 @@ KUBESOLO_PORTAINER_EDGE_KEY=YmFzZTY0ZW5jb2RlZGtleQ==
 
 # Optional: startup timeout in seconds per component health check (default: 600)
 # KUBESOLO_STARTUP_TIMEOUT=600
+
+# Optional: enable the metrics server (default: true)
+# KUBESOLO_METRICS_SERVER=false
 
 # Start the service
 systemctl start kubesolo
@@ -756,7 +778,7 @@ ip addr show eno2
 
 ### Customizing Network Settings in the Image
 
-1. Edit [`meta-dgam-pr/recipes-core/network-config/files/eno2-static.nmconnection`](meta-dgam-pr/recipes-core/network-config/files/eno2-static.nmconnection)
+1. Edit [`eno2-static-plc.nmconnection`](meta-dgam-pr/recipes-core/network-config/files/eno2-static-plc.nmconnection) or [`eno2-static-vpn.nmconnection`](meta-dgam-pr/recipes-core/network-config/files/eno2-static-vpn.nmconnection) in `meta-dgam-pr/recipes-core/network-config/files/`
 2. Update IP address, gateway, or DNS as needed
 3. Rebuild the image using kas
 4. Deploy the updated `.swu` file
@@ -771,7 +793,9 @@ Both device images use **firewalld** with a shared `public` zone configuration d
 
 | File | Installed to | Purpose |
 |------|-------------|---------|
-| [`public.xml`](meta-dgam-pr/recipes-core/firewall-config-iot2050/files/public.xml) | `/etc/firewalld/zones/public.xml` | Zone definition (open ports, masquerade, forward) |
+| [`public.xml`](meta-dgam-pr/recipes-core/firewall-config-iot2050/files/public.xml) | `/etc/firewalld/zones/public.xml` | Zone definition for the VPN-facing device (open ports, masquerade, forward) |
+| [`public-plc.xml`](meta-dgam-pr/recipes-core/firewall-config-iot2050/files/public-plc.xml) | `/etc/firewalld/zones/public.xml` | Zone definition used when `FIREWALL_PROFILE = "plc"`; additionally opens `67/udp` for dnsmasq DHCP |
+| [`firewalld.conf`](meta-dgam-pr/recipes-core/firewall-config-iot2050/files/firewalld.conf) | `/etc/firewalld/firewalld.conf` | Uses the iptables backend and `IPv6_rpfilter=no` (the IOT2050 kernel nftables/FIB ABI is incompatible with firewalld defaults) |
 | [`mqtt.xml`](meta-dgam-pr/recipes-core/firewall-config-iot2050/files/mqtt.xml) | `/etc/firewalld/services/mqtt.xml` | Custom service: MQTT (1883/tcp) |
 | [`node-red.xml`](meta-dgam-pr/recipes-core/firewall-config-iot2050/files/node-red.xml) | `/etc/firewalld/services/node-red.xml` | Custom service: Node-RED (1880/tcp) |
 | [`postinst`](meta-dgam-pr/recipes-core/firewall-config-iot2050/files/postinst) | (dpkg hook) | Runs `firewall-cmd --reload` after install |
@@ -786,6 +810,7 @@ The `public` zone allows the following inbound services on both devices:
 | `dhcpv6-client` | 546/udp | DHCPv6 client |
 | `mqtt` | 1883/tcp | MQTT broker (mosquitto) |
 | `node-red` | 1880/tcp | Node-RED web UI |
+| *(port)* | 67/udp | DHCP server (dnsmasq) — **PLC-facing only**, via `public-plc.xml` |
 
 ### IP Masquerade and Forwarding
 
@@ -1264,9 +1289,9 @@ Ensure [`meta-dgam-pr/conf/layer.conf`](meta-dgam-pr/conf/layer.conf) uses:
 ### Build Errors
 
 ```bash
-# Clean and rebuild
-./kas-container --isar cleanall kas/dgam-pr.yml
-./kas-container --isar build kas/dgam-pr.yml
+# Clean and rebuild (use plc-facing-dgam-pr.yml or vpn-facing-dgam-pr.yml)
+./kas-container --isar cleanall kas/vpn-facing-dgam-pr.yml
+./kas-container --isar build kas/vpn-facing-dgam-pr.yml
 
 # Check build logs
 less build/tmp/work/*/temp/log.do_*
