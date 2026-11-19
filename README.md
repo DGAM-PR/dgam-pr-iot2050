@@ -42,7 +42,8 @@ This project extends the Siemens IOT2050 platform with custom functionality for 
 │   │   ├── kubesolo/           # Single-node Kubernetes setup
 │   │   ├── mosquitto-config/   # MQTT listener on 1883 (PLC-facing)
 │   │   ├── node-red-config/    # root in dialout group (PLC-facing)
-│   │   └── node-red-contrib-buffer-parser/  # Node-RED buffer parser node (PLC-facing)
+│   │   ├── node-red-contrib-buffer-parser/  # Node-RED buffer parser node (PLC-facing)
+│   │   └── node-red-contrib-opcua/          # Node-RED OPC-UA nodes, pinned 0.2.355 (PLC-facing)
 │   └── recipes-core/
 │       ├── device-identity/          # Host-wide device identity env vars
 │       ├── dnsmasq-config/           # DHCP server on eno1 (PLC-facing)
@@ -143,6 +144,7 @@ The VPN-facing configuration ([`kas/vpn-facing-dgam-pr.yml`](kas/vpn-facing-dgam
 
 ```yaml
 BBMASK += "meta-dgam-pr/recipes-app/node-red-contrib-buffer-parser/"  # needs meta-node-red's npm.bbclass, not present here
+BBMASK += "meta-dgam-pr/recipes-app/node-red-contrib-opcua/"          # idem
 IMAGE_INSTALL:remove = "tcf-agent"
 IOT2050_DOCKER_SUPPORT = "0"             # Disable Docker (Node-RED layer is simply not included)
 IOT2050_DEBIAN_DEBUG_PACKAGES:remove = "mosquitto mosquitto-clients"
@@ -172,7 +174,7 @@ IOT2050_META_NODE_RED_PACKAGES = "mraa node-red node-red-gpio node-red-contrib-o
 | `mraa` | Hardware abstraction (GPIO, I2C, SPI) |
 | `node-red` | Node-RED runtime |
 | `node-red-gpio` | GPIO nodes for IOT2050 hardware |
-| `node-red-contrib-opcua` | OPC-UA protocol nodes |
+| `node-red-contrib-opcua` | OPC-UA protocol nodes (custom recipe in `meta-dgam-pr`, pinned to 0.2.355) |
 | `node-red-contrib-modbus` | Modbus protocol nodes |
 | `node-red-contrib-s7` | Siemens S7 PLC communication nodes |
 | `node-red-node-serialport` | Serial port nodes |
