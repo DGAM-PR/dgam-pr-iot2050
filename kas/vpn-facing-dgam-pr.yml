@@ -30,9 +30,10 @@ local_conf_header:
     USER_root[password] ??= "root"
     USER_root[flags] ??= "clear-text-password force-passwd-change"
   dgam_customization: |
-    # The node-red-contrib-buffer-parser recipe uses npm.bbclass from meta-node-red,
-    # which is not included in the VPN-facing build. Mask it here.
+    # The node-red-contrib-buffer-parser and node-red-contrib-opcua recipes use npm.bbclass
+    # from meta-node-red, which is not included in the VPN-facing build. Mask them here.
     BBMASK += "meta-dgam-pr/recipes-app/node-red-contrib-buffer-parser/"
+    BBMASK += "meta-dgam-pr/recipes-app/node-red-contrib-opcua/"
     # Strip unwanted packages
     IMAGE_INSTALL:remove = "tcf-agent"
     IOT2050_DOCKER_SUPPORT = "0"
@@ -53,6 +54,7 @@ local_conf_header:
 ## Must build in Node REd Container
 # node-red-node-serialport
 # node-red-contrib-buffer-parser
+# node-red-contrib-opcua
 # node-red-contrib-msg-speed
 # node-red-node-pushover
 # node-red-node-contrib-mqtt-sparkplug-+
